@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -196,8 +197,11 @@ fun EntrySheet(
 private fun CategoryGrid(type: EntryType, selected: String?, onSelect: (String?) -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
     val tiles: List<Category?> = listOf(null) + Category.forType(type)
+    val rows = tiles.chunked(4)
+    // Keep the grid the same height for both types so switching Cash in/out doesn't resize the sheet under the keyboard.
+    val maxRows = EntryType.entries.maxOf { (Category.forType(it).size + 1 + 3) / 4 }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        tiles.chunked(4).forEach { row ->
+        rows.forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { cat ->
                     val isSelected = selected == cat?.name
@@ -225,6 +229,12 @@ private fun CategoryGrid(type: EntryType, selected: String?, onSelect: (String?)
                     }
                 }
                 repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        repeat(maxRows - rows.size) {
+            Column(Modifier.padding(vertical = 4.dp)) {
+                Spacer(Modifier.height(48.dp))
+                Text(" ", style = MaterialTheme.typography.labelSmall)
             }
         }
     }
