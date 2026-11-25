@@ -35,7 +35,7 @@ fun formatMoney(minor: Long, currency: Currency): String {
 }
 
 fun formatSigned(minor: Long, currency: Currency): String =
-    (if (minor >= 0) "+" else "") + formatMoney(minor, currency)
+    (if (minor > 0) "+" else "") + formatMoney(minor, currency)
 
 fun formatEntry(amount: Long, type: EntryType, currency: Currency): String =
     (if (type == EntryType.IN) "+" else "−") + formatMoney(amount, currency)
@@ -77,7 +77,7 @@ fun formatShort(minor: Long, currency: Currency, from: Long = 1_000): String {
 }
 
 fun formatShortSigned(minor: Long, currency: Currency, from: Long = 1_000): String =
-    (if (minor >= 0) "+" else "") + formatShort(minor, currency, from)
+    (if (minor > 0) "+" else "") + formatShort(minor, currency, from)
 
 /** Balances only shorten from 1 million so everyday amounts stay exact. */
 const val SHORT_FROM_MILLION = 1_000_000L

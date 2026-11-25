@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -43,6 +46,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -70,8 +74,10 @@ fun EntrySheet(
     onDelete: (() -> Unit)?,
 ) {
     var type by rememberSaveable { mutableStateOf(initial?.type ?: EntryType.OUT) }
-    var amountText by rememberSaveable { mutableStateOf(initial?.let { minorToInput(it.amount, currency) } ?: "") }
-    var note by rememberSaveable { mutableStateOf(initial?.note ?: "") }
+    // State-based fields let the keyboard own composing text, which Burmese and Japanese keyboards rely on.
+    val amountState = rememberTextFieldState(initial?.let { minorToInput(it.amount, currency) } ?: "")
+    val noteState = rememberTextFieldState(initial?.note ?: "")
+    val amountText = amountState.text.toString()
     var category by rememberSaveable { mutableStateOf(initial?.category) }
     var timestamp by rememberSaveable { mutableLongStateOf(initial?.timestamp ?: System.currentTimeMillis()) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
@@ -106,11 +112,10 @@ fun EntrySheet(
                 },
             )
             OutlinedTextField(
-                value = amountText,
-                onValueChange = { amountText = it },
+                state = amountState,
                 label = { Text("Amount") },
                 suffix = { Text(currency.name) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 isError = amountText.isNotEmpty() && amount == null,
                 supportingText = if (amountText.isNotEmpty() && amount == null && currency.decimals == 0) {
                     { Text("Whole numbers only for ${currency.label}") }
@@ -128,10 +133,10 @@ fun EntrySheet(
             SectionLabel("Category (optional)")
             CategoryGrid(type = type, selected = category, onSelect = { key -> category = if (category == key) null else key })
             OutlinedTextField(
-                value = note,
-                onValueChange = { note = it },
+                state = noteState,
                 label = { Text("Note") },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             )
             OutlinedTextField(
@@ -150,7 +155,7 @@ fun EntrySheet(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clickable { pickingDate = true },
             )
             Button(
-                onClick = { amount?.let { onSave(type, it, note.trim(), category, timestamp) } },
+                onClick = { amount?.let { onSave(type, it, noteState.text.toString().trim(), category, timestamp) } },
                 enabled = amount != null,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             ) { Text("Save") }
@@ -192,8 +197,11 @@ fun EntrySheet(
 private fun CategoryGrid(type: EntryType, selected: String?, onSelect: (String?) -> Unit) {
     val primary = MaterialTheme.colorScheme.primary
     val tiles: List<Category?> = listOf(null) + Category.forType(type)
+    val rows = tiles.chunked(4)
+    // Keep the grid the same height for both types so switching Cash in/out doesn't resize the sheet under the keyboard.
+    val maxRows = EntryType.entries.maxOf { (Category.forType(it).size + 1 + 3) / 4 }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        tiles.chunked(4).forEach { row ->
+        rows.forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { cat ->
                     val isSelected = selected == cat?.name
@@ -221,6 +229,12 @@ private fun CategoryGrid(type: EntryType, selected: String?, onSelect: (String?)
                     }
                 }
                 repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+        repeat(maxRows - rows.size) {
+            Column(Modifier.padding(vertical = 4.dp)) {
+                Spacer(Modifier.height(48.dp))
+                Text(" ", style = MaterialTheme.typography.labelSmall)
             }
         }
     }

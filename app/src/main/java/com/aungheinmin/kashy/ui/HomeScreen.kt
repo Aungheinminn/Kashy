@@ -386,14 +386,14 @@ private fun BalanceHeader(state: HomeUiState) {
     ) {
         TotalCard(
             "Cash in",
-            "+" + formatMoney(state.totalIn, state.currency),
-            "+" + formatShort(state.totalIn, state.currency, SHORT_FROM_MILLION),
+            plusIfAny(state.totalIn) + formatMoney(state.totalIn, state.currency),
+            plusIfAny(state.totalIn) + formatShort(state.totalIn, state.currency, SHORT_FROM_MILLION),
             cash.cashIn, cash.cashInBg, Modifier.weight(1f),
         )
         TotalCard(
             "Cash out",
-            "−" + formatMoney(state.totalOut, state.currency),
-            "−" + formatShort(state.totalOut, state.currency, SHORT_FROM_MILLION),
+            minusIfAny(state.totalOut) + formatMoney(state.totalOut, state.currency),
+            minusIfAny(state.totalOut) + formatShort(state.totalOut, state.currency, SHORT_FROM_MILLION),
             cash.cashOut, cash.cashOutBg, Modifier.weight(1f),
         )
     }
@@ -540,3 +540,7 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
         )
     }
 }
+
+private fun plusIfAny(amount: Long) = if (amount == 0L) "" else "+"
+
+private fun minusIfAny(amount: Long) = if (amount == 0L) "" else "−"
