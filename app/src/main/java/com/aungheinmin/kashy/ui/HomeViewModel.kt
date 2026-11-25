@@ -97,6 +97,8 @@ class HomeViewModel(
 
     fun setThemeMode(mode: ThemeMode) = settings.setThemeMode(mode)
 
+    fun setShortAmounts(enabled: Boolean) = settings.setShortAmounts(enabled)
+
     fun createWallet(name: String, emoji: String, currency: Currency) {
         viewModelScope.launch {
             val id = walletDao.insert(Wallet(name = name, emoji = emoji, currency = currency))

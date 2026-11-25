@@ -14,8 +14,9 @@ android {
         applicationId = "com.aungheinmin.kashy"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // The release workflow passes these from the git tag and run number.
+        versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+        versionName = findProperty("versionName") as String? ?: "0.1.0"
     }
 
     signingConfigs {
@@ -31,6 +32,8 @@ android {
 
     buildTypes {
         release {
+            // Same committed key as debug builds, so a release APK installs over a CI build without wiping data.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -70,4 +73,6 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    testImplementation(libs.junit)
 }

@@ -70,7 +70,7 @@ fun WalletsScreen(
                     Currency.entries.filter { it in totals }.forEach { c ->
                         Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
                             Text(c.label, Modifier.weight(1f))
-                            Text(formatMoney(totals.getValue(c), c), fontWeight = FontWeight.SemiBold)
+                            AmountText(formatMoney(totals.getValue(c), c), formatShort(totals.getValue(c), c), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -109,6 +109,6 @@ private fun WalletRow(wallet: WalletSummary, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(formatMoney(wallet.balance, wallet.currency), fontWeight = FontWeight.SemiBold)
+        AmountText(formatMoney(wallet.balance, wallet.currency), formatShort(wallet.balance, wallet.currency), fontWeight = FontWeight.SemiBold)
     }
 }
