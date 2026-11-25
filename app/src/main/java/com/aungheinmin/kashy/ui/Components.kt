@@ -4,11 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.material3.Text
 import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
@@ -112,7 +115,6 @@ fun WalletIcon(emoji: String, currency: Currency, modifier: Modifier = Modifier,
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> SegmentedChoice(
     options: List<T>,
@@ -120,15 +122,43 @@ fun <T> SegmentedChoice(
     label: (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
+    selectedColors: @Composable (T) -> Pair<Color, Color> = {
+        MaterialTheme.colorScheme.surfaceContainerLowest to MaterialTheme.colorScheme.onSurface
+    },
 ) {
-    SingleChoiceSegmentedButtonRow(modifier) {
-        options.forEachIndexed { index, option ->
-            SegmentedButton(
-                selected = option == selected,
-                onClick = { onSelect(option) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                icon = {},
-            ) { Text(label(option), maxLines = 1) }
+    Row(
+        modifier
+            .height(44.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
+            .padding(4.dp),
+    ) {
+        options.forEach { option ->
+            val isSelected = option == selected
+            val (bg, fg) = selectedColors(option)
+            val background by animateColorAsState(if (isSelected) bg else Color.Transparent, label = "segmentBg")
+            val content by animateColorAsState(
+                if (isSelected) fg else MaterialTheme.colorScheme.onSurfaceVariant,
+                label = "segmentFg",
+            )
+            Box(
+                Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clip(CircleShape)
+                    .background(background)
+                    // Keep focus (and the keyboard) on the text field the user is typing in.
+                    .focusProperties { canFocus = false }
+                    .clickable { onSelect(option) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    label(option),
+                    color = content,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
