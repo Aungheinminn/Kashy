@@ -32,6 +32,7 @@ tap_text "Add entry" "236 596"; sleep 2; shot sheet
 tap_text "Note"; shot note-focused
 adb shell input text hello; sleep 1; shot typed-hello
 for i in 1 2 3 4 5 6; do adb shell input keyevent 67; done; sleep 1; shot cleared
+adb shell input swipe 160 180 160 330 400; sleep 1.5; shot scrolled-up
 tap_text "Cash in"; shot cash-in
 tap_text "Cash out"; shot cash-out
 adb shell input text world; sleep 1; shot typed-world
