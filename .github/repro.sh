@@ -18,6 +18,7 @@ for n in ET.parse("ui.xml").iter("node"):
         break
 PY
 )
+  [ -z "$xy" ] && xy="${2:-}"
   echo "tap '$1' -> $xy"
   [ -n "$xy" ] && adb shell input tap $xy
   sleep 1.5
@@ -27,7 +28,7 @@ adb shell settings put global window_animation_scale 0
 adb shell am start -n com.aungheinmin.kashy/.MainActivity
 sleep 6
 shot home
-tap_text "Add entry"; shot sheet
+tap_text "Add entry" "236 596"; sleep 2; shot sheet
 tap_text "Note"; shot note-focused
 adb shell input text hello; sleep 1; shot typed-hello
 for i in 1 2 3 4 5 6; do adb shell input keyevent 67; done; sleep 1; shot cleared
