@@ -1,3 +1,5 @@
 <resources>
-    <style name="Theme.Kashy" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.Kashy" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFFBFDF7</item>
+    </style>
 </resources>

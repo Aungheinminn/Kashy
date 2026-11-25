@@ -8,18 +8,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface EntryDao {
-    @Query("SELECT * FROM entries ORDER BY timestamp DESC")
-    fun observeAll(): Flow<List<Entry>>
-
     @Query(
         """
-        SELECT
-            COALESCE(SUM(CASE WHEN type = 'IN' THEN amount ELSE 0 END), 0) AS totalIn,
-            COALESCE(SUM(CASE WHEN type = 'OUT' THEN amount ELSE 0 END), 0) AS totalOut
-        FROM entries
+        SELECT * FROM entries
+        WHERE walletId = :walletId AND timestamp >= :from AND timestamp < :until
+        ORDER BY timestamp DESC
         """
     )
-    fun observeTotals(): Flow<Totals>
+    fun observeRange(walletId: Long, from: Long, until: Long): Flow<List<Entry>>
 
     @Upsert
     suspend fun upsert(entry: Entry)
