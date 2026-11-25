@@ -1,5 +1,10 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import com.aungheinmin.kashy.data.AppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,13 +82,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
 
-private val monthShort = DateTimeFormatter.ofPattern("MMM yyyy", Locale.US)
-private val monthLong = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.US)
-private val timeFormat = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
 
 private sealed interface Overlay {
     data object NewEntry : Overlay
@@ -96,17 +96,19 @@ private sealed interface Overlay {
 fun HomeScreen(
     viewModel: HomeViewModel,
     themeMode: ThemeMode,
+    language: AppLanguage,
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val res = LocalContext.current.resources
     var overlay by remember { mutableStateOf<Overlay?>(null) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     fun notify(message: String, undo: (() -> Unit)? = null) {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
-            val result = snackbar.showSnackbar(message, actionLabel = undo?.let { "Undo" }, duration = SnackbarDuration.Short)
+            val result = snackbar.showSnackbar(message, actionLabel = undo?.let { res.getString(R.string.undo) }, duration = SnackbarDuration.Short)
             if (result == SnackbarResult.ActionPerformed) undo?.invoke()
         }
     }
@@ -117,10 +119,12 @@ fun HomeScreen(
             HomeTopBar(
                 state = state,
                 themeMode = themeMode,
+                language = language,
                 onSelectWallet = viewModel::selectWallet,
                 onOpenWallets = onOpenWallets,
                 onCreateWallet = onCreateWallet,
                 onThemeMode = viewModel::setThemeMode,
+                onLanguage = viewModel::setLanguage,
                 onShortAmounts = viewModel::setShortAmounts,
             )
         },
@@ -128,7 +132,7 @@ fun HomeScreen(
             ExtendedFloatingActionButton(
                 onClick = { overlay = Overlay.NewEntry },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("Add entry") },
+                text = { Text(stringResource(R.string.add_entry)) },
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
             )
         },
@@ -152,16 +156,15 @@ fun HomeScreen(
                 )
             }
             item {
+                val labels = mapOf(
+                    TypeFilter.ALL to stringResource(R.string.all),
+                    TypeFilter.IN to stringResource(R.string.cash_in),
+                    TypeFilter.OUT to stringResource(R.string.cash_out),
+                )
                 SegmentedChoice(
                     options = TypeFilter.entries,
                     selected = state.typeFilter,
-                    label = {
-                        when (it) {
-                            TypeFilter.ALL -> "All"
-                            TypeFilter.IN -> "Cash in"
-                            TypeFilter.OUT -> "Cash out"
-                        }
-                    },
+                    label = { labels.getValue(it) },
                     onSelect = viewModel::setTypeFilter,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     selectedColors = {
@@ -184,7 +187,7 @@ fun HomeScreen(
             if (state.entries.isEmpty()) {
                 item {
                     Text(
-                        if (state.isFiltered) "No entries match these filters." else "No entries this month.\nTap \"Add entry\" to record cash in or out.",
+                        stringResource(if (state.isFiltered) R.string.empty_filtered else R.string.empty_month),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
@@ -228,13 +231,13 @@ fun HomeScreen(
                 onSave = { type, amount, note, category, timestamp ->
                     viewModel.save(existing, type, amount, note, category, timestamp)
                     overlay = null
-                    notify(if (existing == null) "Entry added" else "Entry updated")
+                    notify(res.getString(if (existing == null) R.string.entry_added else R.string.entry_updated))
                 },
                 onDelete = existing?.let {
                     {
                         viewModel.delete(it)
                         overlay = null
-                        notify("Entry deleted", undo = { viewModel.restore(it) })
+                        notify(res.getString(R.string.entry_deleted), undo = { viewModel.restore(it) })
                     }
                 },
             )
@@ -246,10 +249,12 @@ fun HomeScreen(
 private fun HomeTopBar(
     state: HomeUiState,
     themeMode: ThemeMode,
+    language: AppLanguage,
     onSelectWallet: (Long) -> Unit,
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
     onThemeMode: (ThemeMode) -> Unit,
+    onLanguage: (AppLanguage) -> Unit,
     onShortAmounts: (Boolean) -> Unit,
 ) {
     val shortAmounts = LocalShortAmounts.current
@@ -273,8 +278,8 @@ private fun HomeTopBar(
                 ) {
                     state.wallet?.let { WalletIcon(it.emoji, it.currency, size = 22.dp) }
                     Spacer(Modifier.width(6.dp))
-                    Text(state.wallet?.name ?: "Wallet", style = MaterialTheme.typography.titleSmall)
-                    Icon(Icons.Filled.ArrowDropDown, contentDescription = "Switch wallet")
+                    Text(state.wallet?.name ?: stringResource(R.string.wallet), style = MaterialTheme.typography.titleSmall)
+                    Icon(Icons.Filled.ArrowDropDown, contentDescription = stringResource(R.string.switch_wallet))
                 }
                 DropdownMenu(expanded = walletMenu, onDismissRequest = { walletMenu = false }) {
                     state.wallets.forEach { w ->
@@ -290,7 +295,7 @@ private fun HomeTopBar(
                     }
                     HorizontalDivider()
                     DropdownMenuItem(
-                        text = { Text("New wallet") },
+                        text = { Text(stringResource(R.string.new_wallet)) },
                         leadingIcon = { Icon(Icons.Filled.Add, null) },
                         onClick = {
                             walletMenu = false
@@ -298,7 +303,7 @@ private fun HomeTopBar(
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("All wallets") },
+                        text = { Text(stringResource(R.string.all_wallets)) },
                         onClick = {
                             walletMenu = false
                             onOpenWallets()
@@ -308,42 +313,62 @@ private fun HomeTopBar(
             }
             Spacer(Modifier.weight(1f))
             Box {
-                IconButton(onClick = { moreMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More") }
+                IconButton(onClick = { moreMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options)) }
                 DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
                     DropdownMenuItem(
-                        text = { Text("Wallets") },
+                        text = { Text(stringResource(R.string.wallets)) },
                         onClick = {
                             moreMenu = false
                             onOpenWallets()
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Short amounts") },
+                        text = { Text(stringResource(R.string.short_amounts)) },
                         trailingIcon = { Switch(checked = shortAmounts, onCheckedChange = null) },
                         onClick = { onShortAmounts(!shortAmounts) },
                     )
                     HorizontalDivider()
-                    Text(
-                        "Theme",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    )
+                    MenuHeader(stringResource(R.string.theme))
                     ThemeMode.entries.forEach { mode ->
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    when (mode) {
-                                        ThemeMode.SYSTEM -> "System default"
-                                        ThemeMode.LIGHT -> "Light"
-                                        ThemeMode.DARK -> "Dark"
-                                    }
+                                    stringResource(
+                                        when (mode) {
+                                            ThemeMode.SYSTEM -> R.string.system_default
+                                            ThemeMode.LIGHT -> R.string.theme_light
+                                            ThemeMode.DARK -> R.string.theme_dark
+                                        }
+                                    )
                                 )
                             },
                             leadingIcon = { RadioButton(selected = mode == themeMode, onClick = null) },
                             onClick = {
                                 onThemeMode(mode)
                                 moreMenu = false
+                            },
+                        )
+                    }
+                    HorizontalDivider()
+                    MenuHeader(stringResource(R.string.language))
+                    AppLanguage.entries.forEach { option ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        when (option) {
+                                            AppLanguage.SYSTEM -> R.string.system_default
+                                            AppLanguage.ENGLISH -> R.string.language_english
+                                            AppLanguage.BURMESE -> R.string.language_burmese
+                                            AppLanguage.JAPANESE -> R.string.language_japanese
+                                        }
+                                    )
+                                )
+                            },
+                            leadingIcon = { RadioButton(selected = option == language, onClick = null) },
+                            onClick = {
+                                moreMenu = false
+                                onLanguage(option)
                             },
                         )
                     }
@@ -359,8 +384,8 @@ private fun BalanceHeader(state: HomeUiState) {
     val net = state.totalIn - state.totalOut
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            if (state.isFiltered) "Net · ${state.month.month.getDisplayName(TextStyle.FULL, Locale.US)} (filtered)"
-            else "Net · ${state.month.format(monthLong)}",
+            if (state.isFiltered) stringResource(R.string.net_month_filtered, state.month.month.getDisplayName(TextStyle.FULL_STANDALONE, LocalConfiguration.current.locales[0]))
+            else stringResource(R.string.net_month, state.month.format(rememberFormatter(R.string.pattern_month_long))),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -373,8 +398,8 @@ private fun BalanceHeader(state: HomeUiState) {
         )
         state.wallet?.let {
             AmountText(
-                full = "Wallet balance ${formatMoney(it.balance, it.currency)}",
-                short = "Wallet balance ${formatShort(it.balance, it.currency, SHORT_FROM_MILLION)}",
+                full = stringResource(R.string.wallet_balance, formatMoney(it.balance, it.currency)),
+                short = stringResource(R.string.wallet_balance, formatShort(it.balance, it.currency, SHORT_FROM_MILLION)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -385,13 +410,13 @@ private fun BalanceHeader(state: HomeUiState) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         TotalCard(
-            "Cash in",
+            stringResource(R.string.cash_in),
             plusIfAny(state.totalIn) + formatMoney(state.totalIn, state.currency),
             plusIfAny(state.totalIn) + formatShort(state.totalIn, state.currency, SHORT_FROM_MILLION),
             cash.cashIn, cash.cashInBg, Modifier.weight(1f),
         )
         TotalCard(
-            "Cash out",
+            stringResource(R.string.cash_out),
             minusIfAny(state.totalOut) + formatMoney(state.totalOut, state.currency),
             minusIfAny(state.totalOut) + formatShort(state.totalOut, state.currency, SHORT_FROM_MILLION),
             cash.cashOut, cash.cashOutBg, Modifier.weight(1f),
@@ -423,7 +448,7 @@ private fun Toolbar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onPrev, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous month")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous_month))
             }
             Row(
                 Modifier.clickable(onClick = onOpenMonths).widthIn(min = 108.dp).padding(vertical = 8.dp, horizontal = 4.dp),
@@ -432,10 +457,10 @@ private fun Toolbar(
             ) {
                 Icon(Icons.Filled.CalendarMonth, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(month.format(monthShort), style = MaterialTheme.typography.titleSmall)
+                Text(month.format(rememberFormatter(R.string.pattern_month_short)), style = MaterialTheme.typography.titleSmall)
             }
             IconButton(onClick = onNext, enabled = month < YearMonth.now(), modifier = Modifier.size(40.dp)) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next month")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.next_month))
             }
         }
         Spacer(Modifier.weight(1f))
@@ -448,7 +473,7 @@ private fun Toolbar(
                     Badge(containerColor = MaterialTheme.colorScheme.primary) { Text("$filterCount") }
                 }
             }) {
-                Icon(Icons.Filled.FilterList, contentDescription = "Filter by category", modifier = Modifier.size(20.dp))
+                Icon(Icons.Filled.FilterList, contentDescription = stringResource(R.string.filter_by_category), modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -466,8 +491,8 @@ private fun ActiveFilterChips(keys: Set<String>, onRemove: (String) -> Unit) {
             InputChip(
                 selected = true,
                 onClick = { onRemove(key) },
-                label = { Text(category?.let { "${it.emoji} ${it.label}" } ?: "No category") },
-                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove filter", Modifier.size(InputChipDefaults.IconSize)) },
+                label = { Text(category?.let { "${it.emoji} ${stringResource(it.label)}" } ?: stringResource(R.string.no_category)) },
+                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.remove_filter), Modifier.size(InputChipDefaults.IconSize)) },
             )
         }
     }
@@ -487,7 +512,7 @@ private fun DayGroup(day: LocalDate, entries: List<Entry>, currency: Currency, o
             Text("${day.dayOfMonth}", fontSize = 26.sp, fontWeight = FontWeight.Bold, lineHeight = 26.sp)
             Spacer(Modifier.width(8.dp))
             Text(
-                YearMonth.from(day).format(monthLong),
+                YearMonth.from(day).format(rememberFormatter(R.string.pattern_month_long)),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -511,7 +536,10 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
     val cash = LocalCashColors.current
     val category = Category.of(entry.category)
     val isIn = entry.type == EntryType.IN
-    val time = Instant.ofEpochMilli(entry.timestamp).atZone(ZoneId.systemDefault()).format(timeFormat)
+    val time = Instant.ofEpochMilli(entry.timestamp).atZone(ZoneId.systemDefault()).format(rememberFormatter(R.string.pattern_time))
+    val categoryLabel = category?.let { stringResource(it.label) }
+    val typeLabel = stringResource(if (isIn) R.string.cash_in else R.string.cash_out)
+    val noCategory = stringResource(R.string.no_category)
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -520,13 +548,13 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                entry.note.ifBlank { category?.label ?: if (isIn) "Cash in" else "Cash out" },
+                entry.note.ifBlank { categoryLabel ?: typeLabel },
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "${category?.label ?: "No category"} · $time",
+                "${categoryLabel ?: noCategory} · $time",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -544,3 +572,13 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
 private fun plusIfAny(amount: Long) = if (amount == 0L) "" else "+"
 
 private fun minusIfAny(amount: Long) = if (amount == 0L) "" else "−"
+
+@Composable
+private fun MenuHeader(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
+}

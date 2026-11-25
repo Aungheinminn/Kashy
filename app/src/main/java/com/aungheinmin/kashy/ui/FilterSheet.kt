@@ -1,5 +1,7 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -51,17 +53,17 @@ fun FilterSheet(initial: Set<String>, onApply: (Set<String>) -> Unit, onDismiss:
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 16.dp)) {
-            Text("Filter", style = MaterialTheme.typography.titleMedium)
-            SectionLabel("Cash out categories")
-            Chips(Category.forType(EntryType.OUT).map { it.name to "${it.emoji} ${it.label}" })
-            SectionLabel("Cash in categories")
-            Chips(Category.forType(EntryType.IN).map { it.name to "${it.emoji} ${it.label}" })
-            SectionLabel("Other")
-            Chips(listOf(NO_CATEGORY to "No category"))
+            Text(stringResource(R.string.filter), style = MaterialTheme.typography.titleMedium)
+            SectionLabel(stringResource(R.string.cash_out_categories))
+            Chips(Category.forType(EntryType.OUT).map { it.name to "${it.emoji} ${stringResource(it.label)}" })
+            SectionLabel(stringResource(R.string.cash_in_categories))
+            Chips(Category.forType(EntryType.IN).map { it.name to "${it.emoji} ${stringResource(it.label)}" })
+            SectionLabel(stringResource(R.string.other))
+            Chips(listOf(NO_CATEGORY to stringResource(R.string.no_category)))
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = { pending = emptySet() }) { Text("Clear all") }
+                TextButton(onClick = { pending = emptySet() }) { Text(stringResource(R.string.clear_all)) }
                 androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
-                Button(onClick = { onApply(pending) }) { Text("Show results") }
+                Button(onClick = { onApply(pending) }) { Text(stringResource(R.string.show_results)) }
             }
         }
     }

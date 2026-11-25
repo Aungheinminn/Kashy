@@ -1,5 +1,8 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -47,12 +50,12 @@ fun WalletsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Wallets") },
+                title = { Text(stringResource(R.string.wallets)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) }
                 },
                 actions = {
-                    IconButton(onClick = onCreateWallet) { Icon(Icons.Filled.Add, contentDescription = "New wallet") }
+                    IconButton(onClick = onCreateWallet) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.new_wallet)) }
                 },
             )
         },
@@ -66,16 +69,16 @@ fun WalletsScreen(
                         .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
-                    Text("Total by currency", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.total_by_currency), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Currency.entries.filter { it in totals }.forEach { c ->
                         Row(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-                            Text(c.label, Modifier.weight(1f))
+                            Text(stringResource(c.label), Modifier.weight(1f))
                             AmountText(formatMoney(totals.getValue(c), c), formatShort(totals.getValue(c), c), fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
             }
-            item { SectionLabel("Your wallets", Modifier.padding(horizontal = 16.dp)) }
+            item { SectionLabel(stringResource(R.string.your_wallets), Modifier.padding(horizontal = 16.dp)) }
             item {
                 Column(
                     Modifier
@@ -104,7 +107,7 @@ private fun WalletRow(wallet: WalletSummary, onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(wallet.name, style = MaterialTheme.typography.bodyLarge)
             Text(
-                "${wallet.currency.label} · " + if (wallet.entryCount == 0) "new" else "${wallet.entryCount} entries",
+                stringResource(wallet.currency.label) + " · " + if (wallet.entryCount == 0) stringResource(R.string.wallet_new) else pluralStringResource(R.plurals.entry_count, wallet.entryCount, wallet.entryCount),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

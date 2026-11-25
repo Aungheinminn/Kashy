@@ -1,5 +1,6 @@
 package com.aungheinmin.kashy.ui
 
+import com.aungheinmin.kashy.data.AppLanguage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
@@ -96,6 +97,8 @@ class HomeViewModel(
     fun selectWallet(id: Long) = settings.setWalletId(id)
 
     fun setThemeMode(mode: ThemeMode) = settings.setThemeMode(mode)
+
+    fun setLanguage(language: AppLanguage) = settings.setLanguage(language)
 
     fun setShortAmounts(enabled: Boolean) = settings.setShortAmounts(enabled)
 

@@ -1,5 +1,7 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,10 +61,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-private val dateFormat = DateTimeFormatter.ofPattern("EEE, d MMM yyyy · h:mm a", Locale.US)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +81,9 @@ fun EntrySheet(
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     val amount = parseAmount(amountText, currency)
     val zone = ZoneId.systemDefault()
+    val dateFormat = rememberFormatter(R.string.pattern_entry_date)
+    val cashIn = stringResource(R.string.cash_in)
+    val cashOut = stringResource(R.string.cash_out)
     val cash = LocalCashColors.current
     val keyboard = LocalSoftwareKeyboardController.current
     val amountFocus = remember { FocusRequester() }
@@ -96,11 +97,11 @@ fun EntrySheet(
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
         ) {
-            Text(if (initial == null) "New entry" else "Edit entry", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(if (initial == null) R.string.new_entry else R.string.edit_entry), style = MaterialTheme.typography.titleMedium)
             SegmentedChoice(
                 options = listOf(EntryType.IN, EntryType.OUT),
                 selected = type,
-                label = { if (it == EntryType.IN) "Cash in" else "Cash out" },
+                label = { if (it == EntryType.IN) cashIn else cashOut },
                 onSelect = {
                     if (it != type) category = null
                     type = it
@@ -113,12 +114,12 @@ fun EntrySheet(
             )
             OutlinedTextField(
                 state = amountState,
-                label = { Text("Amount") },
+                label = { Text(stringResource(R.string.amount)) },
                 suffix = { Text(currency.name) },
                 lineLimits = TextFieldLineLimits.SingleLine,
                 isError = amountText.isNotEmpty() && amount == null,
                 supportingText = if (amountText.isNotEmpty() && amount == null && currency.decimals == 0) {
-                    { Text("Whole numbers only for ${currency.label}") }
+                    { Text(stringResource(R.string.whole_numbers_only, stringResource(currency.label))) }
                 } else null,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = if (currency.decimals == 0) KeyboardType.Number else KeyboardType.Decimal,
@@ -130,11 +131,11 @@ fun EntrySheet(
                     .focusRequester(amountFocus)
                     .onFocusChanged { amountFocused = it.isFocused },
             )
-            SectionLabel("Category (optional)")
+            SectionLabel(stringResource(R.string.category_optional))
             CategoryGrid(type = type, selected = category, onSelect = { key -> category = if (category == key) null else key })
             OutlinedTextField(
                 state = noteState,
-                label = { Text("Note") },
+                label = { Text(stringResource(R.string.note)) },
                 lineLimits = TextFieldLineLimits.SingleLine,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -144,7 +145,7 @@ fun EntrySheet(
                 onValueChange = {},
                 readOnly = true,
                 enabled = false,
-                label = { Text("Date") },
+                label = { Text(stringResource(R.string.date)) },
                 trailingIcon = { Icon(Icons.Filled.CalendarMonth, contentDescription = null) },
                 colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                     disabledTextColor = MaterialTheme.colorScheme.onSurface,
@@ -158,10 +159,10 @@ fun EntrySheet(
                 onClick = { amount?.let { onSave(type, it, noteState.text.toString().trim(), category, timestamp) } },
                 enabled = amount != null,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
             if (onDelete != null) {
                 OutlinedButton(onClick = onDelete, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -186,9 +187,9 @@ fun EntrySheet(
                         timestamp = date.atTime(current.toLocalTime()).atZone(zone).toInstant().toEpochMilli()
                     }
                     pickingDate = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.ok)) }
             },
-            dismissButton = { TextButton(onClick = { pickingDate = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pickingDate = false }) { Text(stringResource(R.string.cancel)) } },
         ) { DatePicker(state = pickerState) }
     }
 }
@@ -220,7 +221,7 @@ private fun CategoryGrid(type: EntryType, selected: String?, onSelect: (String?)
                             modifier = if (isSelected) Modifier.border(2.dp, primary, CircleShape).padding(3.dp) else Modifier.padding(3.dp),
                         )
                         Text(
-                            cat?.label ?: "None",
+                            stringResource(cat?.label ?: R.string.none),
                             style = MaterialTheme.typography.labelSmall,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
