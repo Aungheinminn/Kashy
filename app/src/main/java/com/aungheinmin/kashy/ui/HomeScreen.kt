@@ -384,7 +384,7 @@ private fun BalanceHeader(state: HomeUiState) {
     val net = state.totalIn - state.totalOut
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            if (state.isFiltered) stringResource(R.string.net_month_filtered, state.month.month.getDisplayName(TextStyle.FULL_STANDALONE, LocalConfiguration.current.locales[0]))
+            if (state.isFiltered) stringResource(R.string.net_month_filtered, state.month.month.getDisplayName(TextStyle.FULL, LocalConfiguration.current.locales[0]))
             else stringResource(R.string.net_month, state.month.format(rememberFormatter(R.string.pattern_month_long))),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
