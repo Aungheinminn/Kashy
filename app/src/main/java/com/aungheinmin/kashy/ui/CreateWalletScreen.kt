@@ -1,5 +1,7 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.BorderStroke
@@ -65,9 +67,9 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("New wallet") },
+                title = { Text(stringResource(R.string.new_wallet)) },
                 navigationIcon = {
-                    IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = "Close") }
+                    IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close)) }
                 },
             )
         },
@@ -82,11 +84,11 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
         ) {
             OutlinedTextField(
                 state = nameState,
-                label = { Text("Wallet name") },
+                label = { Text(stringResource(R.string.wallet_name)) },
                 lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
             )
-            SectionLabel("Icon (optional)")
+            SectionLabel(stringResource(R.string.icon_optional))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 (walletEmoji + "").forEach { e ->
                     val selected = emoji == e
@@ -101,11 +103,11 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                             .clickable { emoji = e },
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (e.isEmpty()) Text("None", style = MaterialTheme.typography.labelSmall) else Text(e, fontSize = 20.sp)
+                        if (e.isEmpty()) Text(stringResource(R.string.none), style = MaterialTheme.typography.labelSmall) else Text(e, fontSize = 20.sp)
                     }
                 }
             }
-            SectionLabel("Currency")
+            SectionLabel(stringResource(R.string.currency))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Currency.entries.forEach { c ->
                     val selected = currency == c
@@ -121,9 +123,9 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                         WalletIcon("", c)
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(c.label, style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(c.label), style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                "${c.name} · e.g. ${formatMoney(currencyExample.getValue(c), c)}",
+                                stringResource(R.string.currency_example, c.name, formatMoney(currencyExample.getValue(c), c)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -133,7 +135,7 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                 }
             }
             Text(
-                "Starts at ${formatMoney(0, currency)}. Its balance comes from the entries you add.",
+                stringResource(R.string.wallet_starts_at, formatMoney(0, currency)),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 12.dp),
@@ -142,7 +144,7 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                 onClick = { onCreate(name.trim(), emoji, currency) },
                 enabled = name.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            ) { Text("Create wallet") }
+            ) { Text(stringResource(R.string.create_wallet)) }
         }
     }
 }

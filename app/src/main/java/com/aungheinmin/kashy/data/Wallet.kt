@@ -1,12 +1,14 @@
 package com.aungheinmin.kashy.data
 
+import androidx.annotation.StringRes
 import androidx.room.Entity
+import com.aungheinmin.kashy.R
 import androidx.room.PrimaryKey
 
-enum class Currency(val label: String, val decimals: Int) {
-    MMK("Myanmar Kyat", 0),
-    USD("US Dollar", 2),
-    JPY("Japanese Yen", 0),
+enum class Currency(@StringRes val label: Int, val decimals: Int) {
+    MMK(R.string.currency_mmk, 0),
+    USD(R.string.currency_usd, 2),
+    JPY(R.string.currency_jpy, 0),
 }
 
 @Entity(tableName = "wallets")

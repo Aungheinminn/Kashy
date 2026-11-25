@@ -1,5 +1,10 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.annotation.StringRes
+import androidx.compose.ui.platform.LocalConfiguration
+import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -161,4 +166,11 @@ fun <T> SegmentedChoice(
             }
         }
     }
+}
+
+@Composable
+fun rememberFormatter(@StringRes pattern: Int): DateTimeFormatter {
+    val text = stringResource(pattern)
+    val locale = LocalConfiguration.current.locales[0]
+    return remember(text, locale) { DateTimeFormatter.ofPattern(text, locale) }
 }

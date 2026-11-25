@@ -1,5 +1,8 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.ui.res.stringResource
+import com.aungheinmin.kashy.R
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +36,6 @@ import androidx.compose.ui.window.Dialog
 import java.time.Month
 import java.time.YearMonth
 import java.time.format.TextStyle
-import java.util.Locale
 
 @Composable
 fun MonthPickerDialog(
@@ -48,11 +50,11 @@ fun MonthPickerDialog(
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { year-- }) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous year")
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous_year))
                     }
                     Text("$year", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                     IconButton(onClick = { year++ }, enabled = year < latest.year) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next year")
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.next_year))
                     }
                 }
                 Month.entries.chunked(3).forEach { row ->
@@ -71,7 +73,7 @@ fun MonthPickerDialog(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    month.getDisplayName(TextStyle.SHORT, Locale.US),
+                                    month.getDisplayName(TextStyle.SHORT, LocalConfiguration.current.locales[0]),
                                     color = if (current) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                                     fontWeight = if (current) FontWeight.Bold else FontWeight.Normal,
                                 )
