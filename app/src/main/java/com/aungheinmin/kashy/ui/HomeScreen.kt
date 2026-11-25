@@ -49,6 +49,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -120,6 +121,7 @@ fun HomeScreen(
                 onOpenWallets = onOpenWallets,
                 onCreateWallet = onCreateWallet,
                 onThemeMode = viewModel::setThemeMode,
+                onShortAmounts = viewModel::setShortAmounts,
             )
         },
         floatingActionButton = {
@@ -240,7 +242,9 @@ private fun HomeTopBar(
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
     onThemeMode: (ThemeMode) -> Unit,
+    onShortAmounts: (Boolean) -> Unit,
 ) {
+    val shortAmounts = LocalShortAmounts.current
     var walletMenu by remember { mutableStateOf(false) }
     var moreMenu by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -305,6 +309,11 @@ private fun HomeTopBar(
                             onOpenWallets()
                         },
                     )
+                    DropdownMenuItem(
+                        text = { Text("Short amounts") },
+                        trailingIcon = { Switch(checked = shortAmounts, onCheckedChange = null) },
+                        onClick = { onShortAmounts(!shortAmounts) },
+                    )
                     HorizontalDivider()
                     Text(
                         "Theme",
@@ -347,15 +356,17 @@ private fun BalanceHeader(state: HomeUiState) {
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Text(
-            formatMoney(net, state.currency),
+        AmountText(
+            full = formatMoney(net, state.currency),
+            short = formatShort(net, state.currency, SHORT_FROM_MILLION),
             fontSize = 34.sp,
             fontWeight = FontWeight.Bold,
             color = if (net < 0) cash.cashOut else MaterialTheme.colorScheme.onSurface,
         )
         state.wallet?.let {
-            Text(
-                "Wallet balance ${formatMoney(it.balance, it.currency)}",
+            AmountText(
+                full = "Wallet balance ${formatMoney(it.balance, it.currency)}",
+                short = "Wallet balance ${formatShort(it.balance, it.currency, SHORT_FROM_MILLION)}",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -365,16 +376,26 @@ private fun BalanceHeader(state: HomeUiState) {
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TotalCard("Cash in", "+" + formatMoney(state.totalIn, state.currency), cash.cashIn, cash.cashInBg, Modifier.weight(1f))
-        TotalCard("Cash out", "−" + formatMoney(state.totalOut, state.currency), cash.cashOut, cash.cashOutBg, Modifier.weight(1f))
+        TotalCard(
+            "Cash in",
+            "+" + formatMoney(state.totalIn, state.currency),
+            "+" + formatShort(state.totalIn, state.currency, SHORT_FROM_MILLION),
+            cash.cashIn, cash.cashInBg, Modifier.weight(1f),
+        )
+        TotalCard(
+            "Cash out",
+            "−" + formatMoney(state.totalOut, state.currency),
+            "−" + formatShort(state.totalOut, state.currency, SHORT_FROM_MILLION),
+            cash.cashOut, cash.cashOutBg, Modifier.weight(1f),
+        )
     }
 }
 
 @Composable
-private fun TotalCard(label: String, value: String, color: Color, background: Color, modifier: Modifier) {
+private fun TotalCard(label: String, full: String, short: String, color: Color, background: Color, modifier: Modifier) {
     Column(modifier.background(background, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 10.dp)) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        AmountText(full, short, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = color)
     }
 }
 
@@ -463,8 +484,9 @@ private fun DayGroup(day: LocalDate, entries: List<Entry>, currency: Currency, o
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.weight(1f))
-            Text(
-                formatSigned(net, currency),
+            AmountText(
+                full = formatSigned(net, currency),
+                short = formatShortSigned(net, currency),
                 style = MaterialTheme.typography.labelLarge,
                 color = if (net >= 0) cash.cashIn else cash.cashOut,
             )

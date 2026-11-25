@@ -10,7 +10,14 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,6 +30,32 @@ import com.aungheinmin.kashy.data.Category
 import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.EntryType
 import com.aungheinmin.kashy.ui.theme.LocalCashColors
+
+val LocalShortAmounts = staticCompositionLocalOf { true }
+
+/** Shows [short] when short amounts are on; tapping it reveals [full]. */
+@Composable
+fun AmountText(
+    full: String,
+    short: String,
+    modifier: Modifier = Modifier,
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    color: Color = Color.Unspecified,
+    fontWeight: FontWeight? = null,
+    fontSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+) {
+    val shortened = LocalShortAmounts.current && short != full
+    var expanded by remember(full) { mutableStateOf(false) }
+    Text(
+        if (shortened && !expanded) short else full,
+        modifier = if (shortened) modifier.clickable { expanded = !expanded } else modifier,
+        style = style,
+        color = color,
+        fontWeight = fontWeight,
+        fontSize = fontSize,
+        maxLines = 1,
+    )
+}
 
 @Composable
 fun categoryBackground(category: Category): Color {

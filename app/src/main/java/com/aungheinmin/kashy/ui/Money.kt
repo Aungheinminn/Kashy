@@ -49,3 +49,35 @@ fun parseAmount(text: String, currency: Currency): Long? {
     if (value.signum() <= 0 || value.stripTrailingZeros().scale() > currency.decimals) return null
     return runCatching { value.movePointRight(2).longValueExact() }.getOrNull()
 }
+
+private val shortUnits = listOf(
+    BigDecimal("1000") to "K",
+    BigDecimal("1000000") to "M",
+    BigDecimal("1000000000") to "B",
+)
+
+/**
+ * Shortens to K / M / B once the whole amount reaches [from], e.g. `125K MMK`, `1.25M MMK`, `$1.3K`.
+ * Below 1,000 it is always the full amount, so dollar amounts keep their cents.
+ */
+fun formatShort(minor: Long, currency: Currency, from: Long = 1_000): String {
+    val major = BigDecimal.valueOf(kotlin.math.abs(minor), 2)
+    if (major < BigDecimal.valueOf(maxOf(from, 1_000))) return formatMoney(minor, currency)
+    // Walk up the units so a value like 999,950 becomes 1M instead of 1000K.
+    val (n, suffix) = shortUnits.firstNotNullOf { (divisor, suffix) ->
+        val rounded = major.divide(divisor).setScale(if (suffix == "K") 1 else 2, RoundingMode.HALF_UP)
+        if (rounded < BigDecimal("1000") || suffix == "B") rounded.stripTrailingZeros().toPlainString() to suffix else null
+    }
+    val body = when (currency) {
+        Currency.MMK -> "$n$suffix MMK"
+        Currency.USD -> "$$n$suffix"
+        Currency.JPY -> "¥$n$suffix"
+    }
+    return if (minor < 0) "−$body" else body
+}
+
+fun formatShortSigned(minor: Long, currency: Currency, from: Long = 1_000): String =
+    (if (minor >= 0) "+" else "") + formatShort(minor, currency, from)
+
+/** Balances only shorten from 1 million so everyday amounts stay exact. */
+const val SHORT_FROM_MILLION = 1_000_000L
