@@ -1,5 +1,7 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -55,7 +57,8 @@ private val currencyExample = mapOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: String, currency: Currency) -> Unit) {
-    var name by rememberSaveable { mutableStateOf("") }
+    val nameState = rememberTextFieldState()
+    val name = nameState.text.toString()
     var emoji by rememberSaveable { mutableStateOf(walletEmoji.first()) }
     var currency by rememberSaveable { mutableStateOf(Currency.MMK) }
 
@@ -78,10 +81,9 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
             OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
+                state = nameState,
                 label = { Text("Wallet name") },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
             )
             SectionLabel("Icon (optional)")
