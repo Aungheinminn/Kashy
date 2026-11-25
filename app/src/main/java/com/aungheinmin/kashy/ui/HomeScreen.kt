@@ -164,6 +164,14 @@ fun HomeScreen(
                     },
                     onSelect = viewModel::setTypeFilter,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    selectedColors = {
+                        val cash = LocalCashColors.current
+                        when (it) {
+                            TypeFilter.ALL -> MaterialTheme.colorScheme.surfaceContainerLowest to MaterialTheme.colorScheme.onSurface
+                            TypeFilter.IN -> cash.cashInBg to cash.cashIn
+                            TypeFilter.OUT -> cash.cashOutBg to cash.cashOut
+                        }
+                    },
                 )
             }
             if (state.categoryFilter.isNotEmpty()) {

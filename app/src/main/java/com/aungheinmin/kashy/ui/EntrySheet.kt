@@ -30,12 +30,18 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +50,7 @@ import com.aungheinmin.kashy.data.Category
 import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.Entry
 import com.aungheinmin.kashy.data.EntryType
+import com.aungheinmin.kashy.ui.theme.LocalCashColors
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -70,6 +77,10 @@ fun EntrySheet(
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     val amount = parseAmount(amountText, currency)
     val zone = ZoneId.systemDefault()
+    val cash = LocalCashColors.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val amountFocus = remember { FocusRequester() }
+    var amountFocused by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
@@ -87,8 +98,12 @@ fun EntrySheet(
                 onSelect = {
                     if (it != type) category = null
                     type = it
+                    if (amountFocused) keyboard?.show()
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                selectedColors = {
+                    if (it == EntryType.IN) cash.cashInBg to cash.cashIn else cash.cashOutBg to cash.cashOut
+                },
             )
             OutlinedTextField(
                 value = amountText,
@@ -104,7 +119,11 @@ fun EntrySheet(
                     keyboardType = if (currency.decimals == 0) KeyboardType.Number else KeyboardType.Decimal,
                     imeAction = ImeAction.Next,
                 ),
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
+                    .focusRequester(amountFocus)
+                    .onFocusChanged { amountFocused = it.isFocused },
             )
             SectionLabel("Category (optional)")
             CategoryGrid(type = type, selected = category, onSelect = { key -> category = if (category == key) null else key })
@@ -179,7 +198,11 @@ private fun CategoryGrid(type: EntryType, selected: String?, onSelect: (String?)
                 row.forEach { cat ->
                     val isSelected = selected == cat?.name
                     Column(
-                        Modifier.weight(1f).clickable { onSelect(cat?.name) }.padding(vertical = 4.dp),
+                        Modifier
+                            .weight(1f)
+                            .focusProperties { canFocus = false }
+                            .clickable { onSelect(cat?.name) }
+                            .padding(vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         EntryIcon(
