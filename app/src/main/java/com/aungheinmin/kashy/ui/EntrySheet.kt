@@ -79,16 +79,12 @@ fun EntrySheet(
     val noteField = remember { NativeTextFieldController() }
     var amountFocused by remember { mutableStateOf(false) }
 
-    val dbgScroll = rememberScrollState()
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        androidx.compose.runtime.snapshotFlow { dbgScroll.value to dbgScroll.maxValue }.collect { android.util.Log.d("KDBG", "scroll=$it") }
-    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             Modifier
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 16.dp)
-                .verticalScroll(dbgScroll)
+                .verticalScroll(rememberScrollState())
                 .imePadding(),
         ) {
             Text(stringResource(if (initial == null) R.string.new_entry else R.string.edit_entry), style = MaterialTheme.typography.titleMedium)

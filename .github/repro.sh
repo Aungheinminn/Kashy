@@ -49,4 +49,4 @@ adb shell input swipe 293 566 293 566 3000; sleep 1; shot kb-hold-bs
 typ m o r e; sleep 1; shot kb-more
 typ _ t e s t _; typ BS BS BS BS BS BS BS; sleep 1; shot kb-word-del
 typ o k; sleep 1; shot kb-ok
-adb logcat -d > "$OUT/logcat.txt"; grep -A12 KDBG "$OUT/logcat.txt" > "$OUT/kdbg.txt"
+adb logcat -d > "$OUT/logcat.txt"
