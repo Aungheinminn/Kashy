@@ -19,6 +19,18 @@ interface WalletDao {
     )
     fun observeSummaries(): Flow<List<WalletSummary>>
 
+    @Query("SELECT * FROM wallets ORDER BY id")
+    suspend fun getAll(): List<Wallet>
+
     @Insert
     suspend fun insert(wallet: Wallet): Long
+
+    @Query("UPDATE wallets SET name = :name, emoji = :emoji WHERE id = :id")
+    suspend fun updateDetails(id: Long, name: String, emoji: String)
+
+    @Query("DELETE FROM wallets WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM wallets")
+    suspend fun deleteAll()
 }

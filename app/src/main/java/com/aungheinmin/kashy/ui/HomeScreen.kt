@@ -4,7 +4,6 @@ import androidx.compose.ui.res.stringResource
 import com.aungheinmin.kashy.R
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
-import com.aungheinmin.kashy.data.AppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,26 +34,22 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -72,10 +67,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aungheinmin.kashy.data.Category
+import com.aungheinmin.kashy.data.CombinedTotal
+import com.aungheinmin.kashy.data.combinedTotal
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.Entry
 import com.aungheinmin.kashy.data.EntryType
-import com.aungheinmin.kashy.data.ThemeMode
 import com.aungheinmin.kashy.ui.theme.LocalCashColors
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -86,7 +84,6 @@ import java.time.format.TextStyle
 
 
 private sealed interface Overlay {
-    data object NewEntry : Overlay
     data class EditEntry(val entry: Entry) : Overlay
     data object MonthPicker : Overlay
     data object Filter : Overlay
@@ -95,12 +92,14 @@ private sealed interface Overlay {
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    themeMode: ThemeMode,
-    language: AppLanguage,
+    addingEntry: Boolean,
+    onAddingEntryChange: (Boolean) -> Unit,
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val rates by viewModel.rates.collectAsStateWithLifecycle()
+    val totalCurrency by viewModel.totalCurrency.collectAsStateWithLifecycle()
     val res = LocalContext.current.resources
     var overlay by remember { mutableStateOf<Overlay?>(null) }
     val snackbar = remember { SnackbarHostState() }
@@ -114,26 +113,13 @@ fun HomeScreen(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = BOTTOM_BAR_SPACE)) },
         topBar = {
             HomeTopBar(
                 state = state,
-                themeMode = themeMode,
-                language = language,
                 onSelectWallet = viewModel::selectWallet,
                 onOpenWallets = onOpenWallets,
                 onCreateWallet = onCreateWallet,
-                onThemeMode = viewModel::setThemeMode,
-                onLanguage = viewModel::setLanguage,
-                onShortAmounts = viewModel::setShortAmounts,
-            )
-        },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { overlay = Overlay.NewEntry },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(stringResource(R.string.add_entry)) },
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
             )
         },
     ) { padding ->
@@ -141,10 +127,16 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding(),
-                bottom = padding.calculateBottomPadding() + 88.dp,
+                bottom = padding.calculateBottomPadding() + BOTTOM_BAR_SPACE + 8.dp,
             ),
         ) {
-            item { BalanceHeader(state) }
+            item {
+                BalanceHeader(
+                    state = state,
+                    combined = if (state.wallets.size > 1) combinedTotal(state.wallets.map { it.currency to it.balance }, rates, totalCurrency) else null,
+                    onOpenWallets = onOpenWallets,
+                )
+            }
             item {
                 Toolbar(
                     month = state.month,
@@ -222,8 +214,8 @@ fun HomeScreen(
             },
             onDismiss = { overlay = null },
         )
-        Overlay.NewEntry, is Overlay.EditEntry -> {
-            val existing = (current as? Overlay.EditEntry)?.entry
+        is Overlay.EditEntry -> {
+            val existing = current.entry
             EntrySheet(
                 initial = existing,
                 currency = state.currency,
@@ -231,35 +223,40 @@ fun HomeScreen(
                 onSave = { type, amount, note, category, timestamp ->
                     viewModel.save(existing, type, amount, note, category, timestamp)
                     overlay = null
-                    notify(res.getString(if (existing == null) R.string.entry_added else R.string.entry_updated))
+                    notify(res.getString(R.string.entry_updated))
                 },
-                onDelete = existing?.let {
-                    {
-                        viewModel.delete(it)
-                        overlay = null
-                        notify(res.getString(R.string.entry_deleted), undo = { viewModel.restore(it) })
-                    }
+                onDelete = {
+                    viewModel.delete(existing)
+                    overlay = null
+                    notify(res.getString(R.string.entry_deleted), undo = { viewModel.restore(existing) })
                 },
             )
         }
+    }
+
+    if (addingEntry) {
+        EntrySheet(
+            initial = null,
+            currency = state.currency,
+            onDismiss = { onAddingEntryChange(false) },
+            onSave = { type, amount, note, category, timestamp ->
+                viewModel.save(null, type, amount, note, category, timestamp)
+                onAddingEntryChange(false)
+                notify(res.getString(R.string.entry_added))
+            },
+            onDelete = null,
+        )
     }
 }
 
 @Composable
 private fun HomeTopBar(
     state: HomeUiState,
-    themeMode: ThemeMode,
-    language: AppLanguage,
     onSelectWallet: (Long) -> Unit,
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
-    onThemeMode: (ThemeMode) -> Unit,
-    onLanguage: (AppLanguage) -> Unit,
-    onShortAmounts: (Boolean) -> Unit,
 ) {
-    val shortAmounts = LocalShortAmounts.current
     var walletMenu by remember { mutableStateOf(false) }
-    var moreMenu by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.background) {
         Row(
             Modifier
@@ -311,75 +308,12 @@ private fun HomeTopBar(
                     )
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Box {
-                IconButton(onClick = { moreMenu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = stringResource(R.string.more_options)) }
-                DropdownMenu(expanded = moreMenu, onDismissRequest = { moreMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.wallets)) },
-                        onClick = {
-                            moreMenu = false
-                            onOpenWallets()
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.short_amounts)) },
-                        trailingIcon = { Switch(checked = shortAmounts, onCheckedChange = null) },
-                        onClick = { onShortAmounts(!shortAmounts) },
-                    )
-                    HorizontalDivider()
-                    MenuHeader(stringResource(R.string.theme))
-                    ThemeMode.entries.forEach { mode ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(
-                                        when (mode) {
-                                            ThemeMode.SYSTEM -> R.string.system_default
-                                            ThemeMode.LIGHT -> R.string.theme_light
-                                            ThemeMode.DARK -> R.string.theme_dark
-                                        }
-                                    )
-                                )
-                            },
-                            leadingIcon = { RadioButton(selected = mode == themeMode, onClick = null) },
-                            onClick = {
-                                onThemeMode(mode)
-                                moreMenu = false
-                            },
-                        )
-                    }
-                    HorizontalDivider()
-                    MenuHeader(stringResource(R.string.language))
-                    AppLanguage.entries.forEach { option ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    stringResource(
-                                        when (option) {
-                                            AppLanguage.SYSTEM -> R.string.system_default
-                                            AppLanguage.ENGLISH -> R.string.language_english
-                                            AppLanguage.BURMESE -> R.string.language_burmese
-                                            AppLanguage.JAPANESE -> R.string.language_japanese
-                                        }
-                                    )
-                                )
-                            },
-                            leadingIcon = { RadioButton(selected = option == language, onClick = null) },
-                            onClick = {
-                                moreMenu = false
-                                onLanguage(option)
-                            },
-                        )
-                    }
-                }
-            }
         }
     }
 }
 
 @Composable
-private fun BalanceHeader(state: HomeUiState) {
+private fun BalanceHeader(state: HomeUiState, combined: CombinedTotal?, onOpenWallets: () -> Unit) {
     val cash = LocalCashColors.current
     val net = state.totalIn - state.totalOut
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -404,6 +338,7 @@ private fun BalanceHeader(state: HomeUiState) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        combined?.let { AllWalletsLine(it, onOpenWallets) }
     }
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -420,6 +355,33 @@ private fun BalanceHeader(state: HomeUiState) {
             minusIfAny(state.totalOut) + formatMoney(state.totalOut, state.currency),
             minusIfAny(state.totalOut) + formatShort(state.totalOut, state.currency, SHORT_FROM_MILLION),
             cash.cashOut, cash.cashOutBg, Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun AllWalletsLine(total: CombinedTotal, onClick: () -> Unit) {
+    val amount = (if (total.approximate) "≈ " else "") +
+        if (LocalShortAmounts.current) formatShort(total.minor, total.currency) else formatMoney(total.minor, total.currency)
+    val missing = if (total.missing.isEmpty()) "" else " · " + pluralStringResource(R.plurals.not_included, total.missing.size, total.missing.size)
+    Row(
+        Modifier
+            .padding(top = 2.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.all_wallets_total, amount) + missing,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
         )
     }
 }
@@ -572,13 +534,3 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
 private fun plusIfAny(amount: Long) = if (amount == 0L) "" else "+"
 
 private fun minusIfAny(amount: Long) = if (amount == 0L) "" else "−"
-
-@Composable
-private fun MenuHeader(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    )
-}

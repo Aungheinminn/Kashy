@@ -1,6 +1,9 @@
 package com.aungheinmin.kashy.ui
 
+import com.aungheinmin.kashy.data.AmountStyle
 import com.aungheinmin.kashy.data.Currency
+import com.aungheinmin.kashy.data.DigitGrouping
+import com.aungheinmin.kashy.data.KyatLabel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -56,5 +59,20 @@ class MoneyTest {
         assertNull(parseAmount("12.5", Currency.MMK))
         assertEquals(1_250L, parseAmount("12.50", Currency.USD))
         assertNull(parseAmount("0", Currency.USD))
+    }
+
+    @Test
+    fun amountStyleChangesLabelGroupingAndDigits() {
+        try {
+            amountStyle = AmountStyle(kyat = KyatLabel.KS, grouping = DigitGrouping.PERIOD)
+            assertEquals("1.250.000 Ks", formatMoney(major(1_250_000), Currency.MMK))
+            assertEquals("$1.250,50", formatMoney(125_050, Currency.USD))
+            assertEquals("1,25M Ks", formatShort(major(1_250_000), Currency.MMK))
+
+            amountStyle = AmountStyle(kyat = KyatLabel.KYAT, grouping = DigitGrouping.SPACE, myanmarDigits = true)
+            assertEquals("၁\u202F၂၅၀\u202F၀၀၀ ကျပ်", formatMoney(major(1_250_000), Currency.MMK))
+        } finally {
+            amountStyle = AmountStyle()
+        }
     }
 }

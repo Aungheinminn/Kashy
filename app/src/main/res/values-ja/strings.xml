@@ -20,13 +20,13 @@
     <string name="entry_updated">記録を更新しました</string>
     <string name="entry_deleted">記録を削除しました</string>
     <string name="empty_filtered">条件に合う記録はありません。</string>
-    <string name="empty_month">今月の記録はありません。\n「記録する」をタップして入出金を記録しましょう。</string>
+    <string name="empty_month">今月の記録はありません。
+＋ をタップして入出金を記録しましょう。</string>
     <string name="wallet">ウォレット</string>
     <string name="switch_wallet">ウォレットを切り替え</string>
     <string name="new_wallet">新しいウォレット</string>
     <string name="all_wallets">すべてのウォレット</string>
     <string name="wallets">ウォレット</string>
-    <string name="more_options">その他</string>
     <string name="short_amounts">金額を短く表示</string>
     <string name="theme">テーマ</string>
     <string name="system_default">端末の設定</string>
@@ -57,7 +57,6 @@
     <string name="currency_example">%1$s · 例: %2$s</string>
     <string name="wallet_starts_at">%1$sから始まります。残高は追加した記録から計算されます。</string>
     <string name="create_wallet">ウォレットを作成</string>
-    <string name="total_by_currency">通貨別の合計</string>
     <string name="your_wallets">ウォレット一覧</string>
     <string name="wallet_new">新規</string>
     <string name="currency_mmk">ミャンマー・チャット</string>
@@ -79,5 +78,75 @@
     <string name="pattern_entry_date">yyyy年M月d日(E) H:mm</string>
     <plurals name="entry_count">
         <item quantity="other">%d件</item>
+    </plurals>
+    <string name="home">ホーム</string>
+    <string name="settings">設定</string>
+    <string name="appearance">表示</string>
+    <string name="theme_system">端末</string>
+    <string name="amounts">金額の表示</string>
+    <string name="preview">プレビュー</string>
+    <string name="kyat_shown_as">チャットの表記</string>
+    <string name="digit_grouping">桁区切り</string>
+    <string name="short_amounts_hint">残高と合計を 1,250,000 ではなく 1.25M と表示します。タップすると全体を表示します。</string>
+    <string name="myanmar_digits">ミャンマー数字</string>
+    <string name="myanmar_digits_hint">金額を 123 ではなく ၁၂၃ で表示します。</string>
+    <string name="data">データ</string>
+    <string name="export_data">データを書き出す</string>
+    <string name="export_data_hint">バックアップまたは表計算ファイルとして保存</string>
+    <string name="import_data">データを読み込む</string>
+    <string name="import_data_hint">Kashy のバックアップまたは CSV ファイルから</string>
+    <string name="export_as">書き出し形式</string>
+    <string name="export_json">Kashy バックアップ (.json)</string>
+    <string name="export_json_hint">ウォレットと記録のすべて。この端末や別の端末で復元できます。</string>
+    <string name="export_csv">表計算 (.csv)</string>
+    <string name="export_csv_hint">1 記録 1 行。Excel や Google スプレッドシートで開けます。</string>
+    <string name="export">書き出す</string>
+    <string name="export_failed">ファイルを保存できませんでした</string>
+    <string name="kashy_backup">Kashy バックアップ</string>
+    <string name="csv_file">CSV ファイル</string>
+    <string name="how_to_import">読み込み方法</string>
+    <string name="import_add">今のデータに追加</string>
+    <string name="import_add_hint">名前と通貨が同じウォレットはまとめます。すでにある記録はスキップします。</string>
+    <string name="import_replace">すべて置き換える</string>
+    <string name="import_replace_hint">今のウォレットと記録を先に削除します。</string>
+    <string name="import_replace_warning">元に戻せません。必要なら先にバックアップを書き出してください。</string>
+    <string name="import_action">読み込む</string>
+    <string name="replace_and_import">置き換えて読み込む</string>
+    <string name="import_failed">このファイルは Kashy のバックアップでも CSV でもありません。</string>
+    <string name="general">一般</string>
+    <string name="about">アプリについて</string>
+    <string name="version">バージョン</string>
+    <plurals name="wallet_count">
+        <item quantity="other">ウォレット %d 個</item>
+    </plurals>
+    <plurals name="exported_entries">
+        <item quantity="other">%d 件の記録を書き出しました</item>
+    </plurals>
+    <plurals name="imported_entries">
+        <item quantity="other">%d 件の記録を読み込みました</item>
+    </plurals>
+    <string name="total">合計</string>
+    <string name="rates">レート</string>
+    <string name="tap_wallet_hint">ウォレットをタップすると名前の変更や削除ができます。</string>
+    <string name="edit_wallet">ウォレットを編集</string>
+    <string name="currency_locked">作成後は通貨を変更できません。</string>
+    <string name="delete_wallet">ウォレットを削除</string>
+    <string name="delete_wallet_title">%1$sを削除しますか？</string>
+    <string name="cant_undo">元に戻せません。</string>
+    <string name="wallet_updated">ウォレットを更新しました</string>
+    <string name="wallet_deleted">ウォレットを削除しました</string>
+    <string name="show_totals_in">合計の表示通貨</string>
+    <string name="exchange_rate">為替レート</string>
+    <string name="rate_unit">1 %1$s =</string>
+    <string name="not_set">未設定</string>
+    <string name="rates_hint">レートは手入力のため、換算した合計には ≈ が付きます。</string>
+    <string name="not_included_rate">含まれていません：設定で %1$s のレートを追加してください</string>
+    <string name="all_wallets_total">全ウォレット %1$s</string>
+    <string name="set_rate_first">先に %1$s のレートを設定してください</string>
+    <plurals name="delete_wallet_entries">
+        <item quantity="other">%d 件の記録も削除されます。元に戻せません。</item>
+    </plurals>
+    <plurals name="not_included">
+        <item quantity="other">%d 件は含まれていません</item>
     </plurals>
 </resources>

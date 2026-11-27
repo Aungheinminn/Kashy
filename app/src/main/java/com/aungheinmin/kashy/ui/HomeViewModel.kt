@@ -1,6 +1,11 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.room.withTransaction
+import com.aungheinmin.kashy.data.AmountStyle
 import com.aungheinmin.kashy.data.AppLanguage
+import com.aungheinmin.kashy.data.Backup
+import com.aungheinmin.kashy.data.ExchangeRates
+import com.aungheinmin.kashy.data.KashyDatabase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
@@ -24,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.ZoneId
 
@@ -50,10 +56,11 @@ private data class Filters(val month: YearMonth, val type: TypeFilter, val categ
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
-    private val entryDao: EntryDao,
-    private val walletDao: WalletDao,
+    private val database: KashyDatabase,
     private val settings: Settings,
 ) : ViewModel() {
+    private val entryDao: EntryDao = database.entryDao()
+    private val walletDao: WalletDao = database.walletDao()
 
     private val filters = MutableStateFlow(Filters(YearMonth.now(), TypeFilter.ALL, emptySet()))
 
@@ -102,6 +109,71 @@ class HomeViewModel(
 
     fun setShortAmounts(enabled: Boolean) = settings.setShortAmounts(enabled)
 
+    fun setAmountStyle(style: AmountStyle) = settings.setAmountStyle(style)
+
+    val rates: StateFlow<ExchangeRates> = settings.rates
+
+    val totalCurrency: StateFlow<Currency> = settings.totalCurrency
+
+    fun setTotalCurrency(currency: Currency) = settings.setTotalCurrency(currency)
+
+    /** Sets the rate shown on [currency]'s row; returns false when the other rate it depends on is missing. */
+    fun setRate(currency: Currency, value: BigDecimal): Boolean {
+        val updated = settings.rates.value.withPair(currency, settings.totalCurrency.value, value) ?: return false
+        settings.setRates(updated)
+        return true
+    }
+
+    fun updateWallet(id: Long, name: String, emoji: String) {
+        viewModelScope.launch { walletDao.updateDetails(id, name, emoji) }
+    }
+
+    /** Deletes the wallet and its entries. The last wallet is kept so there is always one to add entries to. */
+    fun deleteWallet(id: Long) {
+        viewModelScope.launch {
+            val remaining = database.withTransaction {
+                if (walletDao.getAll().size <= 1) return@withTransaction null
+                entryDao.deleteForWallet(id)
+                walletDao.delete(id)
+                walletDao.getAll()
+            } ?: return@launch
+            if (remaining.none { it.id == settings.walletId.value }) settings.setWalletId(remaining.first().id)
+        }
+    }
+
+    suspend fun exportBackup(): Backup = database.withTransaction { Backup(walletDao.getAll(), entryDao.getAll()) }
+
+    /**
+     * Adds [backup] to the current data, or replaces it when [replace] is set. Wallets with the same name and
+     * currency are merged, and entries identical to one already saved are skipped. Returns how many entries were added.
+     */
+    suspend fun importBackup(backup: Backup, replace: Boolean): Int = database.withTransaction {
+        if (replace) {
+            entryDao.deleteAll()
+            walletDao.deleteAll()
+        }
+        val existing = walletDao.getAll()
+        val walletIds = backup.wallets.associate { w ->
+            val match = existing.firstOrNull { it.name == w.name && it.currency == w.currency }
+            w.id to (match?.id ?: walletDao.insert(w.copy(id = 0)))
+        }
+        val seen = entryDao.getAll().mapTo(HashSet()) { it.copy(id = 0) }
+        val fresh = backup.entries
+            .map { it.copy(id = 0, walletId = walletIds.getValue(it.walletId)) }
+            .filter { seen.add(it) }
+        entryDao.insertAll(fresh)
+
+        var wallets = walletDao.getAll()
+        if (wallets.isEmpty()) {
+            walletDao.insert(Wallet(name = "Cash", emoji = "💵", currency = Currency.MMK))
+            wallets = walletDao.getAll()
+        }
+        if (replace || wallets.none { it.id == settings.walletId.value }) {
+            settings.setWalletId(walletIds.values.firstOrNull() ?: wallets.first().id)
+        }
+        fresh.size
+    }
+
     fun createWallet(name: String, emoji: String, currency: Currency) {
         viewModelScope.launch {
             val id = walletDao.insert(Wallet(name = name, emoji = emoji, currency = currency))
@@ -128,7 +200,7 @@ class HomeViewModel(
         val Factory = viewModelFactory {
             initializer {
                 val app = this[APPLICATION_KEY] as KashyApp
-                HomeViewModel(app.database.entryDao(), app.database.walletDao(), app.settings)
+                HomeViewModel(app.database, app.settings)
             }
         }
     }
