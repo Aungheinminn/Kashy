@@ -1,9 +1,8 @@
 package com.aungheinmin.kashy.ui
 
+import android.text.InputType
 import androidx.compose.ui.res.stringResource
 import com.aungheinmin.kashy.R
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,7 +30,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -59,8 +57,7 @@ private val currencyExample = mapOf(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: String, currency: Currency) -> Unit) {
-    val nameState = rememberTextFieldState()
-    val name = nameState.text.toString()
+    var name by rememberSaveable { mutableStateOf("") }
     var emoji by rememberSaveable { mutableStateOf(walletEmoji.first()) }
     var currency by rememberSaveable { mutableStateOf(Currency.MMK) }
 
@@ -82,10 +79,11 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         ) {
-            OutlinedTextField(
-                state = nameState,
-                label = { Text(stringResource(R.string.wallet_name)) },
-                lineLimits = TextFieldLineLimits.SingleLine,
+            NativeTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = stringResource(R.string.wallet_name),
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS,
                 modifier = Modifier.fillMaxWidth(),
             )
             SectionLabel(stringResource(R.string.icon_optional))

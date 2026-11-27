@@ -1,5 +1,7 @@
 package com.aungheinmin.kashy.ui
 
+import android.text.InputType
+import android.view.inputmethod.EditorInfo
 import androidx.compose.ui.res.stringResource
 import com.aungheinmin.kashy.R
 import androidx.compose.foundation.border
@@ -14,9 +16,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -42,14 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aungheinmin.kashy.data.Category
@@ -72,10 +64,8 @@ fun EntrySheet(
     onDelete: (() -> Unit)?,
 ) {
     var type by rememberSaveable { mutableStateOf(initial?.type ?: EntryType.OUT) }
-    // State-based fields let the keyboard own composing text, which Burmese and Japanese keyboards rely on.
-    val amountState = rememberTextFieldState(initial?.let { minorToInput(it.amount, currency) } ?: "")
-    val noteState = rememberTextFieldState(initial?.note ?: "")
-    val amountText = amountState.text.toString()
+    var amountText by rememberSaveable { mutableStateOf(initial?.let { minorToInput(it.amount, currency) } ?: "") }
+    var note by rememberSaveable { mutableStateOf(initial?.note ?: "") }
     var category by rememberSaveable { mutableStateOf(initial?.category) }
     var timestamp by rememberSaveable { mutableLongStateOf(initial?.timestamp ?: System.currentTimeMillis()) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
@@ -85,8 +75,8 @@ fun EntrySheet(
     val cashIn = stringResource(R.string.cash_in)
     val cashOut = stringResource(R.string.cash_out)
     val cash = LocalCashColors.current
-    val keyboard = LocalSoftwareKeyboardController.current
-    val amountFocus = remember { FocusRequester() }
+    val amountField = remember { NativeTextFieldController() }
+    val noteField = remember { NativeTextFieldController() }
     var amountFocused by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -105,39 +95,38 @@ fun EntrySheet(
                 onSelect = {
                     if (it != type) category = null
                     type = it
-                    if (amountFocused) keyboard?.show()
+                    if (amountFocused) amountField.showKeyboard()
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 selectedColors = {
                     if (it == EntryType.IN) cash.cashInBg to cash.cashIn else cash.cashOutBg to cash.cashOut
                 },
             )
-            OutlinedTextField(
-                state = amountState,
-                label = { Text(stringResource(R.string.amount)) },
-                suffix = { Text(currency.name) },
-                lineLimits = TextFieldLineLimits.SingleLine,
+            NativeTextField(
+                value = amountText,
+                onValueChange = { amountText = it },
+                label = stringResource(R.string.amount),
+                suffix = currency.name,
                 isError = amountText.isNotEmpty() && amount == null,
                 supportingText = if (amountText.isNotEmpty() && amount == null && currency.decimals == 0) {
-                    { Text(stringResource(R.string.whole_numbers_only, stringResource(currency.label))) }
+                    stringResource(R.string.whole_numbers_only, stringResource(currency.label))
                 } else null,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (currency.decimals == 0) KeyboardType.Number else KeyboardType.Decimal,
-                    imeAction = ImeAction.Next,
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .focusRequester(amountFocus)
-                    .onFocusChanged { amountFocused = it.isFocused },
+                inputType = if (currency.decimals == 0) InputType.TYPE_CLASS_NUMBER
+                else InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL,
+                imeAction = EditorInfo.IME_ACTION_NEXT,
+                onImeAction = noteField::focus,
+                controller = amountField,
+                onFocusChange = { amountFocused = it },
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             )
             SectionLabel(stringResource(R.string.category_optional))
             CategoryGrid(type = type, selected = category, onSelect = { key -> category = if (category == key) null else key })
-            OutlinedTextField(
-                state = noteState,
-                label = { Text(stringResource(R.string.note)) },
-                lineLimits = TextFieldLineLimits.SingleLine,
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            NativeTextField(
+                value = note,
+                onValueChange = { note = it },
+                label = stringResource(R.string.note),
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+                controller = noteField,
                 modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
             )
             OutlinedTextField(
@@ -156,7 +145,7 @@ fun EntrySheet(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp).clickable { pickingDate = true },
             )
             Button(
-                onClick = { amount?.let { onSave(type, it, noteState.text.toString().trim(), category, timestamp) } },
+                onClick = { amount?.let { onSave(type, it, note.trim(), category, timestamp) } },
                 enabled = amount != null,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             ) { Text(stringResource(R.string.save)) }

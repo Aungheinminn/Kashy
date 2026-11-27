@@ -1,5 +1,6 @@
 package com.aungheinmin.kashy.ui
 
+import android.text.InputType
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -40,12 +41,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -381,18 +377,18 @@ fun SettingsScreen(
 
 @Composable
 private fun RateDialog(pair: RatePair, onDismiss: () -> Unit, onSave: (BigDecimal) -> Unit) {
-    val state = rememberTextFieldState(pair.value?.toPlainString().orEmpty())
-    val value = state.text.toString().replace(",", "").toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    var text by rememberSaveable { mutableStateOf(pair.value?.toPlainString().orEmpty()) }
+    val value = text.replace(",", "").toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.rate_unit, pair.from.name)) },
         text = {
-            OutlinedTextField(
-                state = state,
-                label = { Text(stringResource(R.string.exchange_rate)) },
-                suffix = { Text(pair.to.name) },
-                lineLimits = TextFieldLineLimits.SingleLine,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            NativeTextField(
+                value = text,
+                onValueChange = { text = it },
+                label = stringResource(R.string.exchange_rate),
+                suffix = pair.to.name,
+                inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL,
             )
         },
         confirmButton = { TextButton(onClick = { value?.let(onSave) }, enabled = value != null) { Text(stringResource(R.string.save)) } },
