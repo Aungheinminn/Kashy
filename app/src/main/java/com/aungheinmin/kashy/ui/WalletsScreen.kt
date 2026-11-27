@@ -1,5 +1,6 @@
 package com.aungheinmin.kashy.ui
 
+import android.text.InputType
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,8 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -28,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -223,16 +221,17 @@ private fun EditWalletSheet(
     onSave: (name: String, emoji: String) -> Unit,
     onDelete: () -> Unit,
 ) {
-    val nameState = rememberTextFieldState(wallet.name)
+    var nameText by rememberSaveable { mutableStateOf(wallet.name) }
     var emoji by rememberSaveable { mutableStateOf(wallet.emoji) }
-    val name = nameState.text.toString().trim()
+    val name = nameText.trim()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(stringResource(R.string.edit_wallet), style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(
-                state = nameState,
-                label = { Text(stringResource(R.string.wallet_name)) },
-                lineLimits = TextFieldLineLimits.SingleLine,
+            NativeTextField(
+                value = nameText,
+                onValueChange = { nameText = it },
+                label = stringResource(R.string.wallet_name),
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS,
                 modifier = Modifier.fillMaxWidth(),
             )
             SectionLabel(stringResource(R.string.icon_optional))
