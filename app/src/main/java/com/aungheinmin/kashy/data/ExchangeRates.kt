@@ -33,8 +33,8 @@ data class ExchangeRates(val kyatPer: Map<Currency, BigDecimal> = emptyMap()) {
             else RatePair(currency, main, null)
         }
         val value = a.divide(b, MathContext.DECIMAL64)
-        return if (value >= BigDecimal.ONE) RatePair(currency, main, value.stripTrailingZeros())
-        else RatePair(main, currency, b.divide(a, MathContext.DECIMAL64).stripTrailingZeros())
+        return if (value >= BigDecimal.ONE) RatePair(currency, main, value)
+        else RatePair(main, currency, b.divide(a, MathContext.DECIMAL64))
     }
 
     /** Whether the row for [currency] can be edited; a USD/JPY pair needs the other one's kyat rate first. */
