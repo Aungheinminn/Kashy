@@ -120,12 +120,15 @@ fun NativeTextField(
                                     // Compose doesn't scroll to a focused platform view, and the keyboard is still opening here.
                                     scope.launch {
                                         delay(350)
+                                        android.util.Log.d("KDBG", "bring $label start")
                                         bringIntoView.bringIntoView()
+                                        android.util.Log.d("KDBG", "bring $label done")
                                     }
                                 } else {
                                     focus?.let { interactionSource.tryEmit(FocusInteraction.Unfocus(it)) }
                                     focus = null
                                 }
+                                android.util.Log.d("KDBG", "focus $label=$hasFocus", Throwable())
                                 currentOnFocusChange(hasFocus)
                             }
                             setOnEditorActionListener { _, actionId, _ ->
