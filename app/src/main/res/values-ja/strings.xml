@@ -57,7 +57,6 @@
     <string name="currency_example">%1$s · 例: %2$s</string>
     <string name="wallet_starts_at">%1$sから始まります。残高は追加した記録から計算されます。</string>
     <string name="create_wallet">ウォレットを作成</string>
-    <string name="total_by_currency">通貨別の合計</string>
     <string name="your_wallets">ウォレット一覧</string>
     <string name="wallet_new">新規</string>
     <string name="currency_mmk">ミャンマー・チャット</string>
@@ -125,5 +124,29 @@
     </plurals>
     <plurals name="imported_entries">
         <item quantity="other">%d 件の記録を読み込みました</item>
+    </plurals>
+    <string name="total">合計</string>
+    <string name="rates">レート</string>
+    <string name="tap_wallet_hint">ウォレットをタップすると名前の変更や削除ができます。</string>
+    <string name="edit_wallet">ウォレットを編集</string>
+    <string name="currency_locked">作成後は通貨を変更できません。</string>
+    <string name="delete_wallet">ウォレットを削除</string>
+    <string name="delete_wallet_title">%1$sを削除しますか？</string>
+    <string name="cant_undo">元に戻せません。</string>
+    <string name="wallet_updated">ウォレットを更新しました</string>
+    <string name="wallet_deleted">ウォレットを削除しました</string>
+    <string name="show_totals_in">合計の表示通貨</string>
+    <string name="exchange_rate">為替レート</string>
+    <string name="rate_unit">1 %1$s =</string>
+    <string name="not_set">未設定</string>
+    <string name="rates_hint">レートは手入力のため、換算した合計には ≈ が付きます。</string>
+    <string name="not_included_rate">含まれていません：設定で %1$s のレートを追加してください</string>
+    <string name="all_wallets_total">全ウォレット %1$s</string>
+    <string name="set_rate_first">先に %1$s のレートを設定してください</string>
+    <plurals name="delete_wallet_entries">
+        <item quantity="other">%d 件の記録も削除されます。元に戻せません。</item>
+    </plurals>
+    <plurals name="not_included">
+        <item quantity="other">%d 件は含まれていません</item>
     </plurals>
 </resources>

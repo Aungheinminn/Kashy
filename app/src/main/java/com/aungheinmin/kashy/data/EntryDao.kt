@@ -24,6 +24,9 @@ interface EntryDao {
     @Insert
     suspend fun insertAll(entries: List<Entry>)
 
+    @Query("DELETE FROM entries WHERE walletId = :walletId")
+    suspend fun deleteForWallet(walletId: Long)
+
     @Query("DELETE FROM entries")
     suspend fun deleteAll()
 

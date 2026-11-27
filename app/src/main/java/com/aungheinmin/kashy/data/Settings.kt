@@ -42,6 +42,18 @@ class Settings(context: Context) {
     )
     val amountStyle: StateFlow<AmountStyle> = _amountStyle.asStateFlow()
 
+    private val _totalCurrency = MutableStateFlow(enumPref(KEY_TOTAL_CURRENCY, Currency.MMK))
+    val totalCurrency: StateFlow<Currency> = _totalCurrency.asStateFlow()
+
+    private val _rates = MutableStateFlow(
+        ExchangeRates(
+            Currency.entries.filter { it != Currency.MMK }.mapNotNull { c ->
+                prefs.getString(rateKey(c), null)?.toBigDecimalOrNull()?.let { c to it }
+            }.toMap()
+        )
+    )
+    val rates: StateFlow<ExchangeRates> = _rates.asStateFlow()
+
     private val _language = MutableStateFlow(readLanguage(prefs))
     val language: StateFlow<AppLanguage> = _language.asStateFlow()
 
@@ -63,6 +75,23 @@ class Settings(context: Context) {
             .apply()
         _amountStyle.value = style
     }
+
+    fun setTotalCurrency(currency: Currency) {
+        prefs.edit().putString(KEY_TOTAL_CURRENCY, currency.name).apply()
+        _totalCurrency.value = currency
+    }
+
+    fun setRates(rates: ExchangeRates) {
+        val edit = prefs.edit()
+        Currency.entries.filter { it != Currency.MMK }.forEach { c ->
+            val rate = rates.kyatPer[c]
+            if (rate == null) edit.remove(rateKey(c)) else edit.putString(rateKey(c), rate.toPlainString())
+        }
+        edit.apply()
+        _rates.value = rates
+    }
+
+    private fun rateKey(currency: Currency) = "rate_${currency.name}"
 
     private inline fun <reified T : Enum<T>> enumPref(key: String, default: T): T =
         runCatching { enumValueOf<T>(prefs.getString(key, null)!!) }.getOrDefault(default)
@@ -86,6 +115,7 @@ class Settings(context: Context) {
         private const val KEY_KYAT = "kyat_label"
         private const val KEY_GROUPING = "digit_grouping"
         private const val KEY_MYANMAR_DIGITS = "myanmar_digits"
+        private const val KEY_TOTAL_CURRENCY = "total_currency"
 
         private fun readLanguage(prefs: android.content.SharedPreferences) =
             runCatching { AppLanguage.valueOf(prefs.getString(KEY_LANGUAGE, null)!!) }.getOrDefault(AppLanguage.SYSTEM)

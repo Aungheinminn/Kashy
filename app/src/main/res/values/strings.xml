@@ -61,7 +61,6 @@ Tap + to record cash in or out.</string>
     <string name="currency_example">%1$s · e.g. %2$s</string>
     <string name="wallet_starts_at">Starts at %1$s. Its balance comes from the entries you add.</string>
     <string name="create_wallet">Create wallet</string>
-    <string name="total_by_currency">Total by currency</string>
     <string name="your_wallets">Your wallets</string>
     <string name="wallet_new">new</string>
     <string name="currency_mmk">Myanmar Kyat</string>
@@ -133,5 +132,31 @@ Tap + to record cash in or out.</string>
     <plurals name="imported_entries">
         <item quantity="one">Imported %d entry</item>
         <item quantity="other">Imported %d entries</item>
+    </plurals>
+    <string name="total">Total</string>
+    <string name="rates">Rates</string>
+    <string name="tap_wallet_hint">Tap a wallet to rename it or delete it.</string>
+    <string name="edit_wallet">Edit wallet</string>
+    <string name="currency_locked">Currency can\'t be changed after a wallet is created.</string>
+    <string name="delete_wallet">Delete wallet</string>
+    <string name="delete_wallet_title">Delete %1$s?</string>
+    <string name="cant_undo">This can\'t be undone.</string>
+    <string name="wallet_updated">Wallet updated</string>
+    <string name="wallet_deleted">Wallet deleted</string>
+    <string name="show_totals_in">Show totals in</string>
+    <string name="exchange_rate">Exchange rate</string>
+    <string name="rate_unit">1 %1$s =</string>
+    <string name="not_set">Not set</string>
+    <string name="rates_hint">Rates are entered by you, so converted totals are marked ≈.</string>
+    <string name="not_included_rate">Not included: add a %1$s rate in Settings</string>
+    <string name="all_wallets_total">All wallets %1$s</string>
+    <string name="set_rate_first">Set the %1$s rate first</string>
+    <plurals name="delete_wallet_entries">
+        <item quantity="one">Its %d entry will be deleted too. This can\'t be undone.</item>
+        <item quantity="other">Its %d entries will be deleted too. This can\'t be undone.</item>
+    </plurals>
+    <plurals name="not_included">
+        <item quantity="one">%d not included</item>
+        <item quantity="other">%d not included</item>
     </plurals>
 </resources>

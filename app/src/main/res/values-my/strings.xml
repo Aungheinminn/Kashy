@@ -57,7 +57,6 @@
     <string name="currency_example">%1$s · ဥပမာ %2$s</string>
     <string name="wallet_starts_at">%1$s ဖြင့် စတင်ပါသည်။ လက်ကျန်ငွေကို သင်ထည့်သော စာရင်းများမှ တွက်ပါသည်။</string>
     <string name="create_wallet">ပိုက်ဆံအိတ် ဖန်တီးမည်</string>
-    <string name="total_by_currency">ငွေကြေးအလိုက် စုစုပေါင်း</string>
     <string name="your_wallets">သင့်ပိုက်ဆံအိတ်များ</string>
     <string name="wallet_new">အသစ်</string>
     <string name="currency_mmk">မြန်မာကျပ်</string>
@@ -125,5 +124,29 @@
     </plurals>
     <plurals name="imported_entries">
         <item quantity="other">စာရင်း %d ခု သွင်းပြီးပါပြီ</item>
+    </plurals>
+    <string name="total">စုစုပေါင်း</string>
+    <string name="rates">ငွေလဲနှုန်း</string>
+    <string name="tap_wallet_hint">အမည်ပြောင်းရန် သို့မဟုတ် ဖျက်ရန် ပိုက်ဆံအိတ်ကို နှိပ်ပါ။</string>
+    <string name="edit_wallet">ပိုက်ဆံအိတ် ပြင်ရန်</string>
+    <string name="currency_locked">ပိုက်ဆံအိတ် ဖန်တီးပြီးနောက် ငွေကြေးကို ပြောင်း၍ မရပါ။</string>
+    <string name="delete_wallet">ပိုက်ဆံအိတ် ဖျက်မည်</string>
+    <string name="delete_wallet_title">%1$s ကို ဖျက်မလား။</string>
+    <string name="cant_undo">ပြန်ယူ၍ မရပါ။</string>
+    <string name="wallet_updated">ပိုက်ဆံအိတ် ပြင်ပြီးပါပြီ</string>
+    <string name="wallet_deleted">ပိုက်ဆံအိတ် ဖျက်ပြီးပါပြီ</string>
+    <string name="show_totals_in">စုစုပေါင်းကို ပြမည့်ငွေကြေး</string>
+    <string name="exchange_rate">ငွေလဲနှုန်း</string>
+    <string name="rate_unit">1 %1$s =</string>
+    <string name="not_set">မသတ်မှတ်ရသေး</string>
+    <string name="rates_hint">ငွေလဲနှုန်းကို ကိုယ်တိုင်ထည့်ရသဖြင့် ပြောင်းထားသော စုစုပေါင်းကို ≈ ဖြင့် ပြပါသည်။</string>
+    <string name="not_included_rate">မပါဝင်ပါ - ဆက်တင်တွင် %1$s ငွေလဲနှုန်း ထည့်ပါ</string>
+    <string name="all_wallets_total">ပိုက်ဆံအိတ်အားလုံး %1$s</string>
+    <string name="set_rate_first">%1$s ငွေလဲနှုန်းကို အရင်ထည့်ပါ</string>
+    <plurals name="delete_wallet_entries">
+        <item quantity="other">စာရင်း %d ခုလည်း ပါသွားပါမည်။ ပြန်ယူ၍ မရပါ။</item>
+    </plurals>
+    <plurals name="not_included">
+        <item quantity="other">%d ခု မပါဝင်ပါ</item>
     </plurals>
 </resources>

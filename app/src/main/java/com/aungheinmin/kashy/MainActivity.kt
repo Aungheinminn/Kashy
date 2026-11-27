@@ -110,10 +110,9 @@ class MainActivity : ComponentActivity() {
                             viewModel = viewModel,
                             onBack = pop,
                             onCreateWallet = { push(Screen.CREATE_WALLET) },
-                            onOpenWallet = {
-                                viewModel.selectWallet(it)
+                            onOpenRates = {
                                 stack = listOf(Screen.HOME)
-                                tab = Tab.HOME
+                                tab = Tab.SETTINGS
                             },
                         )
                         Screen.CREATE_WALLET -> CreateWalletScreen(

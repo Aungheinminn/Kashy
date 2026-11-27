@@ -67,6 +67,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aungheinmin.kashy.data.Category
+import com.aungheinmin.kashy.data.CombinedTotal
+import com.aungheinmin.kashy.data.combinedTotal
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
 import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.Entry
 import com.aungheinmin.kashy.data.EntryType
@@ -94,6 +98,8 @@ fun HomeScreen(
     onCreateWallet: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val rates by viewModel.rates.collectAsStateWithLifecycle()
+    val totalCurrency by viewModel.totalCurrency.collectAsStateWithLifecycle()
     val res = LocalContext.current.resources
     var overlay by remember { mutableStateOf<Overlay?>(null) }
     val snackbar = remember { SnackbarHostState() }
@@ -124,7 +130,13 @@ fun HomeScreen(
                 bottom = padding.calculateBottomPadding() + BOTTOM_BAR_SPACE + 8.dp,
             ),
         ) {
-            item { BalanceHeader(state) }
+            item {
+                BalanceHeader(
+                    state = state,
+                    combined = if (state.wallets.size > 1) combinedTotal(state.wallets.map { it.currency to it.balance }, rates, totalCurrency) else null,
+                    onOpenWallets = onOpenWallets,
+                )
+            }
             item {
                 Toolbar(
                     month = state.month,
@@ -301,7 +313,7 @@ private fun HomeTopBar(
 }
 
 @Composable
-private fun BalanceHeader(state: HomeUiState) {
+private fun BalanceHeader(state: HomeUiState, combined: CombinedTotal?, onOpenWallets: () -> Unit) {
     val cash = LocalCashColors.current
     val net = state.totalIn - state.totalOut
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -326,6 +338,7 @@ private fun BalanceHeader(state: HomeUiState) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        combined?.let { AllWalletsLine(it, onOpenWallets) }
     }
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -342,6 +355,33 @@ private fun BalanceHeader(state: HomeUiState) {
             minusIfAny(state.totalOut) + formatMoney(state.totalOut, state.currency),
             minusIfAny(state.totalOut) + formatShort(state.totalOut, state.currency, SHORT_FROM_MILLION),
             cash.cashOut, cash.cashOutBg, Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun AllWalletsLine(total: CombinedTotal, onClick: () -> Unit) {
+    val amount = (if (total.approximate) "≈ " else "") +
+        if (LocalShortAmounts.current) formatShort(total.minor, total.currency) else formatMoney(total.minor, total.currency)
+    val missing = if (total.missing.isEmpty()) "" else " · " + pluralStringResource(R.plurals.not_included, total.missing.size, total.missing.size)
+    Row(
+        Modifier
+            .padding(top = 2.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.all_wallets_total, amount) + missing,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
         )
     }
 }

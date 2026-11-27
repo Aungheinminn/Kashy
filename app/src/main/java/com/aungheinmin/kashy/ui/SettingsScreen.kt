@@ -39,6 +39,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -68,11 +75,13 @@ import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.DigitGrouping
 import com.aungheinmin.kashy.data.KyatLabel
 import com.aungheinmin.kashy.data.ThemeMode
+import com.aungheinmin.kashy.data.RatePair
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneId
+import java.math.BigDecimal
 
 private class PendingImport(val fileName: String, val backup: Backup, val format: BackupFormat)
 
@@ -92,6 +101,9 @@ fun SettingsScreen(
     val shortAmounts = LocalShortAmounts.current
     var exporting by rememberSaveable { mutableStateOf(false) }
     var pendingImport by remember { mutableStateOf<PendingImport?>(null) }
+    val rates by viewModel.rates.collectAsStateWithLifecycle()
+    val totalCurrency by viewModel.totalCurrency.collectAsStateWithLifecycle()
+    var editingRate by rememberSaveable { mutableStateOf<Currency?>(null) }
 
     fun notify(message: String) {
         scope.launch {
@@ -247,6 +259,45 @@ fun SettingsScreen(
                 ) { Switch(checked = style.myanmarDigits, onCheckedChange = null) }
             }
 
+            SectionHeader(stringResource(R.string.currency))
+            SettingsCard {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+                    Text(stringResource(R.string.show_totals_in), style = MaterialTheme.typography.bodyMedium)
+                    SegmentedChoice(
+                        options = Currency.entries,
+                        selected = totalCurrency,
+                        label = { it.name },
+                        onSelect = viewModel::setTotalCurrency,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
+                Currency.entries.filter { it != totalCurrency }.forEach { c ->
+                    val pair = rates.pair(c, totalCurrency)
+                    val settable = rates.canSet(c, totalCurrency)
+                    RowDivider()
+                    SettingsRow(
+                        title = stringResource(c.label),
+                        subtitle = if (settable) stringResource(R.string.rate_unit, pair.from.name)
+                        else stringResource(R.string.set_rate_first, totalCurrency.name),
+                        onClick = if (settable) ({ editingRate = c }) else null,
+                    ) {
+                        Text(
+                            pair.value?.let { formatRate(it) + " " + pair.to.name } ?: stringResource(R.string.not_set),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (pair.value == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+                RowDivider()
+                Text(
+                    stringResource(R.string.rates_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                )
+            }
+
             SectionHeader(stringResource(R.string.data))
             SettingsCard {
                 SettingsRow(
@@ -297,6 +348,17 @@ fun SettingsScreen(
         )
     }
 
+    editingRate?.let { currency ->
+        RateDialog(
+            pair = rates.pair(currency, totalCurrency),
+            onDismiss = { editingRate = null },
+            onSave = { value ->
+                viewModel.setRate(currency, value)
+                editingRate = null
+            },
+        )
+    }
+
     pendingImport?.let { pending ->
         ImportSheet(
             pending = pending,
@@ -315,6 +377,27 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+@Composable
+private fun RateDialog(pair: RatePair, onDismiss: () -> Unit, onSave: (BigDecimal) -> Unit) {
+    val state = rememberTextFieldState(pair.value?.toPlainString().orEmpty())
+    val value = state.text.toString().replace(",", "").toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.rate_unit, pair.from.name)) },
+        text = {
+            OutlinedTextField(
+                state = state,
+                label = { Text(stringResource(R.string.exchange_rate)) },
+                suffix = { Text(pair.to.name) },
+                lineLimits = TextFieldLineLimits.SingleLine,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+        },
+        confirmButton = { TextButton(onClick = { value?.let(onSave) }, enabled = value != null) { Text(stringResource(R.string.save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

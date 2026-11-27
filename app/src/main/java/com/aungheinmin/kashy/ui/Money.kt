@@ -42,6 +42,10 @@ private fun withCurrency(n: String, currency: Currency): String = when (currency
 private fun number(minor: Long, currency: Currency): String =
     styled(pattern(currency.decimals).format(BigDecimal.valueOf(minor, 2).setScale(currency.decimals, RoundingMode.HALF_UP)))
 
+/** An exchange rate such as `4,500` or `0.0067`, following the grouping and digit settings. */
+fun formatRate(value: BigDecimal): String =
+    styled(DecimalFormat("#,##0.####", symbols).format(value))
+
 fun Currency.symbol(): String = when (this) {
     Currency.MMK -> "MMK"
     Currency.USD -> "$"

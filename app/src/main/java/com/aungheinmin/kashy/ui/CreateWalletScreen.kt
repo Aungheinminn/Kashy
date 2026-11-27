@@ -89,24 +89,7 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                 modifier = Modifier.fillMaxWidth(),
             )
             SectionLabel(stringResource(R.string.icon_optional))
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                (walletEmoji + "").forEach { e ->
-                    val selected = emoji == e
-                    Box(
-                        Modifier
-                            .size(44.dp)
-                            .border(
-                                if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                RoundedCornerShape(12.dp),
-                            )
-                            .background(if (selected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent, RoundedCornerShape(12.dp))
-                            .clickable { emoji = e },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        if (e.isEmpty()) Text(stringResource(R.string.none), style = MaterialTheme.typography.labelSmall) else Text(e, fontSize = 20.sp)
-                    }
-                }
-            }
+            WalletEmojiPicker(selected = emoji, onSelect = { emoji = it })
             SectionLabel(stringResource(R.string.currency))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Currency.entries.forEach { c ->
@@ -145,6 +128,29 @@ fun CreateWalletScreen(onClose: () -> Unit, onCreate: (name: String, emoji: Stri
                 enabled = name.isNotBlank(),
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             ) { Text(stringResource(R.string.create_wallet)) }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun WalletEmojiPicker(selected: String, onSelect: (String) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        (walletEmoji + "").forEach { e ->
+            val isSelected = selected == e
+            Box(
+                Modifier
+                    .size(44.dp)
+                    .border(
+                        if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        RoundedCornerShape(12.dp),
+                    )
+                    .background(if (isSelected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent, RoundedCornerShape(12.dp))
+                    .clickable { onSelect(e) },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (e.isEmpty()) Text(stringResource(R.string.none), style = MaterialTheme.typography.labelSmall) else Text(e, fontSize = 20.sp)
+            }
         }
     }
 }

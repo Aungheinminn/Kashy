@@ -4,6 +4,7 @@ import androidx.room.withTransaction
 import com.aungheinmin.kashy.data.AmountStyle
 import com.aungheinmin.kashy.data.AppLanguage
 import com.aungheinmin.kashy.data.Backup
+import com.aungheinmin.kashy.data.ExchangeRates
 import com.aungheinmin.kashy.data.KashyDatabase
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.ZoneId
 
@@ -108,6 +110,36 @@ class HomeViewModel(
     fun setShortAmounts(enabled: Boolean) = settings.setShortAmounts(enabled)
 
     fun setAmountStyle(style: AmountStyle) = settings.setAmountStyle(style)
+
+    val rates: StateFlow<ExchangeRates> = settings.rates
+
+    val totalCurrency: StateFlow<Currency> = settings.totalCurrency
+
+    fun setTotalCurrency(currency: Currency) = settings.setTotalCurrency(currency)
+
+    /** Sets the rate shown on [currency]'s row; returns false when the other rate it depends on is missing. */
+    fun setRate(currency: Currency, value: BigDecimal): Boolean {
+        val updated = settings.rates.value.withPair(currency, settings.totalCurrency.value, value) ?: return false
+        settings.setRates(updated)
+        return true
+    }
+
+    fun updateWallet(id: Long, name: String, emoji: String) {
+        viewModelScope.launch { walletDao.updateDetails(id, name, emoji) }
+    }
+
+    /** Deletes the wallet and its entries. The last wallet is kept so there is always one to add entries to. */
+    fun deleteWallet(id: Long) {
+        viewModelScope.launch {
+            val remaining = database.withTransaction {
+                if (walletDao.getAll().size <= 1) return@withTransaction null
+                entryDao.deleteForWallet(id)
+                walletDao.delete(id)
+                walletDao.getAll()
+            } ?: return@launch
+            if (remaining.none { it.id == settings.walletId.value }) settings.setWalletId(remaining.first().id)
+        }
+    }
 
     suspend fun exportBackup(): Backup = database.withTransaction { Backup(walletDao.getAll(), entryDao.getAll()) }
 
