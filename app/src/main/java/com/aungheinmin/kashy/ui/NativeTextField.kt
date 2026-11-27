@@ -11,6 +11,8 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -32,6 +35,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Lets a caller move focus into a [NativeTextField] or bring its keyboard back. */
 class NativeTextFieldController {
@@ -84,10 +89,13 @@ fun NativeTextField(
     val cursorWidthPx = with(LocalDensity.current) { 2.dp.roundToPx() }
 
     val fieldController = controller ?: remember { NativeTextFieldController() }
+    val bringIntoView = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier
             .defaultMinSize(minHeight = OutlinedTextFieldDefaults.MinHeight)
+            .bringIntoViewRequester(bringIntoView)
             .clickable(interactionSource = null, indication = null) { fieldController.focus() },
     ) {
         OutlinedTextFieldDefaults.DecorationBox(
@@ -109,6 +117,11 @@ fun NativeTextField(
                             setOnFocusChangeListener { _, hasFocus ->
                                 if (hasFocus) {
                                     FocusInteraction.Focus().also { focus = it; interactionSource.tryEmit(it) }
+                                    // Compose doesn't scroll to a focused platform view, and the keyboard is still opening here.
+                                    scope.launch {
+                                        delay(350)
+                                        bringIntoView.bringIntoView()
+                                    }
                                 } else {
                                     focus?.let { interactionSource.tryEmit(FocusInteraction.Unfocus(it)) }
                                     focus = null
