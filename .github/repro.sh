@@ -29,20 +29,19 @@ adb shell am start -n com.aungheinmin.kashy/.MainActivity
 sleep 6
 shot home
 tap_text "Add entry"; sleep 2; shot sheet
-tap_text "Amount"; shot amount-focused
-adb shell input text 12; sleep 1; shot typed-12
-for i in 1 2; do adb shell input keyevent 67; done; sleep 1; shot amount-cleared
-adb shell input text 34; sleep 1; shot typed-34
-adb shell input text .5; sleep 1; shot typed-dot5-error
-for i in 1 2; do adb shell input keyevent 67; done; sleep 1; shot error-cleared
-adb shell input text 7; sleep 1; shot typed-7
-tap_text "Note"; shot note-focused
+key() { case $1 in 1) adb shell input tap 40 473;; 2) adb shell input tap 120 473;; 3) adb shell input tap 199 473;; 4) adb shell input tap 40 520;; 5) adb shell input tap 120 520;; BS) adb shell input tap 278 566;; esac; sleep 0.4; }
+tap_text "Amount"; sleep 1; shot amount-focused
+for k in 1 2 3 4 5; do key $k; done; sleep 1; shot keypad-12345
+for k in BS BS BS; do key $k; done; sleep 1; shot keypad-bs3
+for k in 3 4; do key $k; done; sleep 1; shot keypad-34
+adb shell input swipe 278 566 278 566 2500; sleep 1; shot keypad-hold-bs
+for k in 1 2; do key $k; done; sleep 1; shot keypad-12-after-hold
+adb shell input swipe 160 400 160 120 500; sleep 1.5; shot scrolled
+tap_text "Note"; sleep 1.5; shot note-focused
 adb shell input text hello; adb shell input keyevent 62; adb shell input text world; sleep 1; shot typed-hello-world
-for i in $(seq 1 11); do adb shell input keyevent 67; done; sleep 1; shot note-cleared
+adb shell uiautomator dump /sdcard/ui.xml >/dev/null; adb pull /sdcard/ui.xml "$OUT/kbd.xml" >/dev/null
+adb shell dumpsys input_method | grep -E "mCurMethodId|mCurrentInputMethodInfo|mInputShown" > "$OUT/ime.txt"
+adb shell wm size >> "$OUT/ime.txt"
+for i in 1 2 3 4 5 6; do adb shell input tap 290 600; sleep 0.3; done; sleep 1; shot note-bs-guess
 adb shell input text again; sleep 1; shot typed-again
-adb shell input keyevent KEYCODE_CTRL_LEFT 2>/dev/null
-adb shell input text more; sleep 1
-adb shell input keyevent --longpress 67; sleep 1; shot longpress-delete
-adb shell input text after; sleep 1; shot typed-after
-grep -o 'text="[^"]*"' repro-out/*.xml | grep -v 'text=""' > repro-out/texts.txt || true
 adb logcat -d > "$OUT/logcat.txt"
