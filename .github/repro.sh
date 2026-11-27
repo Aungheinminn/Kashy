@@ -38,10 +38,15 @@ adb shell input swipe 278 566 278 566 2500; sleep 1; shot keypad-hold-bs
 for k in 1 2; do key $k; done; sleep 1; shot keypad-12-after-hold
 adb shell input swipe 160 400 160 120 500; sleep 1.5; shot scrolled
 tap_text "Note"; sleep 1.5; shot note-focused
-adb shell input text hello; adb shell input keyevent 62; adb shell input text world; sleep 1; shot typed-hello-world
-adb shell uiautomator dump /sdcard/ui.xml >/dev/null; adb pull /sdcard/ui.xml "$OUT/kbd.xml" >/dev/null
-adb shell dumpsys input_method | grep -E "mCurMethodId|mCurrentInputMethodInfo|mInputShown" > "$OUT/ime.txt"
-adb shell wm size >> "$OUT/ime.txt"
-for i in 1 2 3 4 5 6; do adb shell input tap 290 600; sleep 0.3; done; sleep 1; shot note-bs-guess
-adb shell input text again; sleep 1; shot typed-again
+declare -A K=([q]="16 467" [w]="48 467" [e]="80 467" [r]="112 467" [t]="144 467" [y]="176 467" [u]="208 467" [i]="240 467" [o]="272 467" [p]="304 467" [a]="32 517" [s]="64 517" [d]="96 517" [f]="128 517" [g]="160 517" [h]="192 517" [j]="224 517" [k]="256 517" [l]="288 517" [z]="64 566" [x]="96 566" [c]="128 566" [v]="160 566" [b]="192 566" [n]="224 566" [m]="256 566" [_]="175 612" [BS]="293 566")
+typ() { for c in "$@"; do adb shell input tap ${K[$c]}; sleep 0.35; done; }
+typ h e l l o _ w o r l d; sleep 1; shot kb-hello-world
+typ BS BS BS; sleep 1; shot kb-bs3
+typ a b c; sleep 1; shot kb-abc
+typ BS BS BS BS BS BS BS BS; sleep 1; shot kb-bs8
+typ x y z; sleep 1; shot kb-xyz
+adb shell input swipe 293 566 293 566 3000; sleep 1; shot kb-hold-bs
+typ m o r e; sleep 1; shot kb-more
+typ _ t e s t _; typ BS BS BS BS BS BS BS; sleep 1; shot kb-word-del
+typ o k; sleep 1; shot kb-ok
 adb logcat -d > "$OUT/logcat.txt"
