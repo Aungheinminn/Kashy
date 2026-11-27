@@ -1,6 +1,11 @@
 package com.aungheinmin.kashy.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.aungheinmin.kashy.data.AmountStyle
 import com.aungheinmin.kashy.data.Currency
+import com.aungheinmin.kashy.data.DigitGrouping
 import com.aungheinmin.kashy.data.EntryType
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -14,8 +19,28 @@ private val symbols = DecimalFormatSymbols(Locale.US)
 private fun pattern(decimals: Int) =
     DecimalFormat(if (decimals == 0) "#,##0" else "#,##0." + "0".repeat(decimals), symbols)
 
+/** Snapshot state, so composables that format amounts redraw when the user changes the style in Settings. */
+var amountStyle by mutableStateOf(AmountStyle())
+
+/** Applies the grouping and digit settings to a number already formatted with US separators. */
+private fun styled(us: String): String {
+    val style = amountStyle
+    val grouped = when (style.grouping) {
+        DigitGrouping.COMMA -> us
+        DigitGrouping.SPACE -> us.replace(',', '\u202F')
+        DigitGrouping.PERIOD -> us.map { if (it == ',') '.' else if (it == '.') ',' else it }.joinToString("")
+    }
+    return if (style.myanmarDigits) grouped.map { if (it in '0'..'9') '၀' + (it - '0') else it }.joinToString("") else grouped
+}
+
+private fun withCurrency(n: String, currency: Currency): String = when (currency) {
+    Currency.MMK -> "$n ${amountStyle.kyat.text}"
+    Currency.USD -> "$$n"
+    Currency.JPY -> "¥$n"
+}
+
 private fun number(minor: Long, currency: Currency): String =
-    pattern(currency.decimals).format(BigDecimal.valueOf(minor, 2).setScale(currency.decimals, RoundingMode.HALF_UP))
+    styled(pattern(currency.decimals).format(BigDecimal.valueOf(minor, 2).setScale(currency.decimals, RoundingMode.HALF_UP)))
 
 fun Currency.symbol(): String = when (this) {
     Currency.MMK -> "MMK"
@@ -25,12 +50,7 @@ fun Currency.symbol(): String = when (this) {
 
 /** [minor] is in hundredths; negative values get a typographic minus. */
 fun formatMoney(minor: Long, currency: Currency): String {
-    val n = number(kotlin.math.abs(minor), currency)
-    val body = when (currency) {
-        Currency.MMK -> "$n MMK"
-        Currency.USD -> "$$n"
-        Currency.JPY -> "¥$n"
-    }
+    val body = withCurrency(number(kotlin.math.abs(minor), currency), currency)
     return if (minor < 0) "−$body" else body
 }
 
@@ -68,11 +88,7 @@ fun formatShort(minor: Long, currency: Currency, from: Long = 1_000): String {
         val rounded = major.divide(divisor).setScale(if (suffix == "K") 1 else 2, RoundingMode.HALF_UP)
         if (rounded < BigDecimal("1000") || suffix == "B") rounded.stripTrailingZeros().toPlainString() to suffix else null
     }
-    val body = when (currency) {
-        Currency.MMK -> "$n$suffix MMK"
-        Currency.USD -> "$$n$suffix"
-        Currency.JPY -> "¥$n$suffix"
-    }
+    val body = withCurrency(styled(n) + suffix, currency)
     return if (minor < 0) "−$body" else body
 }
 

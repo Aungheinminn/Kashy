@@ -19,6 +19,12 @@ interface WalletDao {
     )
     fun observeSummaries(): Flow<List<WalletSummary>>
 
+    @Query("SELECT * FROM wallets ORDER BY id")
+    suspend fun getAll(): List<Wallet>
+
     @Insert
     suspend fun insert(wallet: Wallet): Long
+
+    @Query("DELETE FROM wallets")
+    suspend fun deleteAll()
 }

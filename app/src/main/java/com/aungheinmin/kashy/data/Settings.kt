@@ -9,6 +9,16 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 enum class AppLanguage(val tag: String?) { SYSTEM(null), ENGLISH("en"), BURMESE("my"), JAPANESE("ja") }
 
+enum class KyatLabel(val text: String) { MMK("MMK"), KS("Ks"), KYAT("ကျပ်") }
+
+enum class DigitGrouping { COMMA, SPACE, PERIOD }
+
+data class AmountStyle(
+    val kyat: KyatLabel = KyatLabel.MMK,
+    val grouping: DigitGrouping = DigitGrouping.COMMA,
+    val myanmarDigits: Boolean = false,
+)
+
 class Settings(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -23,6 +33,15 @@ class Settings(context: Context) {
     private val _shortAmounts = MutableStateFlow(prefs.getBoolean(KEY_SHORT, true))
     val shortAmounts: StateFlow<Boolean> = _shortAmounts.asStateFlow()
 
+    private val _amountStyle = MutableStateFlow(
+        AmountStyle(
+            kyat = enumPref(KEY_KYAT, KyatLabel.MMK),
+            grouping = enumPref(KEY_GROUPING, DigitGrouping.COMMA),
+            myanmarDigits = prefs.getBoolean(KEY_MYANMAR_DIGITS, false),
+        )
+    )
+    val amountStyle: StateFlow<AmountStyle> = _amountStyle.asStateFlow()
+
     private val _language = MutableStateFlow(readLanguage(prefs))
     val language: StateFlow<AppLanguage> = _language.asStateFlow()
 
@@ -35,6 +54,18 @@ class Settings(context: Context) {
         prefs.edit().putBoolean(KEY_SHORT, enabled).apply()
         _shortAmounts.value = enabled
     }
+
+    fun setAmountStyle(style: AmountStyle) {
+        prefs.edit()
+            .putString(KEY_KYAT, style.kyat.name)
+            .putString(KEY_GROUPING, style.grouping.name)
+            .putBoolean(KEY_MYANMAR_DIGITS, style.myanmarDigits)
+            .apply()
+        _amountStyle.value = style
+    }
+
+    private inline fun <reified T : Enum<T>> enumPref(key: String, default: T): T =
+        runCatching { enumValueOf<T>(prefs.getString(key, null)!!) }.getOrDefault(default)
 
     fun setThemeMode(mode: ThemeMode) {
         prefs.edit().putString(KEY_THEME, mode.name).apply()
@@ -52,6 +83,9 @@ class Settings(context: Context) {
         private const val KEY_THEME = "theme_mode"
         private const val KEY_WALLET = "wallet_id"
         private const val KEY_SHORT = "short_amounts"
+        private const val KEY_KYAT = "kyat_label"
+        private const val KEY_GROUPING = "digit_grouping"
+        private const val KEY_MYANMAR_DIGITS = "myanmar_digits"
 
         private fun readLanguage(prefs: android.content.SharedPreferences) =
             runCatching { AppLanguage.valueOf(prefs.getString(KEY_LANGUAGE, null)!!) }.getOrDefault(AppLanguage.SYSTEM)
