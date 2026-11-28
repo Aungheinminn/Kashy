@@ -117,6 +117,10 @@ class HomeViewModel(
 
     fun setTotalCurrency(currency: Currency) = settings.setTotalCurrency(currency)
 
+    val driveAccount: StateFlow<String?> = settings.driveAccount
+
+    fun setDriveAccount(email: String?) = settings.setDriveAccount(email)
+
     /** Sets the rate shown on [currency]'s row; returns false when the other rate it depends on is missing. */
     fun setRate(currency: Currency, value: BigDecimal): Boolean {
         val updated = settings.rates.value.withPair(currency, settings.totalCurrency.value, value) ?: return false

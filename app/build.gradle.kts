@@ -74,6 +74,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    implementation(libs.play.services.auth)
+
     testImplementation(libs.junit)
     // Android's org.json is a stub in local unit tests; this is the real implementation.
     testImplementation(libs.org.json)
