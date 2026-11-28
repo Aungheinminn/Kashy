@@ -54,6 +54,14 @@ class Settings(context: Context) {
     )
     val rates: StateFlow<ExchangeRates> = _rates.asStateFlow()
 
+    private val _driveAccount = MutableStateFlow(prefs.getString(KEY_DRIVE_ACCOUNT, null))
+    val driveAccount: StateFlow<String?> = _driveAccount.asStateFlow()
+
+    fun setDriveAccount(email: String?) {
+        prefs.edit().apply { if (email == null) remove(KEY_DRIVE_ACCOUNT) else putString(KEY_DRIVE_ACCOUNT, email) }.apply()
+        _driveAccount.value = email
+    }
+
     private val _language = MutableStateFlow(readLanguage(prefs))
     val language: StateFlow<AppLanguage> = _language.asStateFlow()
 
@@ -116,6 +124,7 @@ class Settings(context: Context) {
         private const val KEY_GROUPING = "digit_grouping"
         private const val KEY_MYANMAR_DIGITS = "myanmar_digits"
         private const val KEY_TOTAL_CURRENCY = "total_currency"
+        private const val KEY_DRIVE_ACCOUNT = "drive_account"
 
         private fun readLanguage(prefs: android.content.SharedPreferences) =
             runCatching { AppLanguage.valueOf(prefs.getString(KEY_LANGUAGE, null)!!) }.getOrDefault(AppLanguage.SYSTEM)

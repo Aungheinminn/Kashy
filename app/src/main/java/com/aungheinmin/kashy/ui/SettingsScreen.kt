@@ -1,10 +1,13 @@
 package com.aungheinmin.kashy.ui
 
+import android.app.Activity
 import android.text.InputType
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,15 +32,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
@@ -69,6 +76,7 @@ import com.aungheinmin.kashy.data.BackupCodec
 import com.aungheinmin.kashy.data.BackupFormat
 import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.DigitGrouping
+import com.aungheinmin.kashy.data.GoogleDrive
 import com.aungheinmin.kashy.data.KyatLabel
 import com.aungheinmin.kashy.data.ThemeMode
 import com.aungheinmin.kashy.data.RatePair
@@ -100,12 +108,88 @@ fun SettingsScreen(
     val rates by viewModel.rates.collectAsStateWithLifecycle()
     val totalCurrency by viewModel.totalCurrency.collectAsStateWithLifecycle()
     var editingRate by rememberSaveable { mutableStateOf<Currency?>(null) }
+    val driveAccount by viewModel.driveAccount.collectAsStateWithLifecycle()
+    var driveBusy by remember { mutableStateOf(false) }
+    var pendingDriveAction by remember { mutableStateOf<(suspend (token: String) -> Unit)?>(null) }
 
-    fun notify(message: String) {
+    fun notify(message: String, actionLabel: String? = null, onAction: () -> Unit = {}) {
         scope.launch {
             snackbar.currentSnackbarData?.dismiss()
-            snackbar.showSnackbar(message)
+            val duration = if (actionLabel != null) SnackbarDuration.Long else SnackbarDuration.Short
+            if (snackbar.showSnackbar(message, actionLabel, duration = duration) == SnackbarResult.ActionPerformed) onAction()
         }
+    }
+
+    val driveAuthLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+        val action = pendingDriveAction
+        pendingDriveAction = null
+        if (result.resultCode != Activity.RESULT_OK || action == null) return@rememberLauncherForActivityResult
+        val token = runCatching { GoogleDrive.resultFromIntent(context, result.data).accessToken }.getOrNull()
+        if (token == null) notify(res.getString(R.string.drive_connect_failed)) else scope.launch { action(token) }
+    }
+
+    /** Runs [action] with a Drive token, first showing Google's account and consent screens if access isn't granted yet. */
+    fun withDrive(action: suspend (token: String) -> Unit) {
+        scope.launch {
+            val result = runCatching { GoogleDrive.authorize(context) }.getOrElse {
+                notify(res.getString(R.string.drive_connect_failed))
+                return@launch
+            }
+            val pendingIntent = result.pendingIntent
+            val token = result.accessToken
+            when {
+                result.hasResolution() && pendingIntent != null -> {
+                    pendingDriveAction = action
+                    driveAuthLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
+                }
+                token != null -> action(token)
+                else -> notify(res.getString(R.string.drive_connect_failed))
+            }
+        }
+    }
+
+    suspend fun connectDrive(token: String): String? {
+        driveBusy = true
+        val email = runCatching { GoogleDrive.accountEmail(context, token) }.getOrNull()
+        driveBusy = false
+        if (email == null) notify(res.getString(R.string.drive_connect_failed)) else viewModel.setDriveAccount(email)
+        return email
+    }
+
+    fun disconnectDrive() {
+        val email = driveAccount ?: return
+        scope.launch {
+            driveBusy = true
+            runCatching { GoogleDrive.disconnect(context, email) }
+            driveBusy = false
+            viewModel.setDriveAccount(null)
+            notify(res.getString(R.string.drive_disconnected))
+        }
+    }
+
+    fun uploadToDrive(format: BackupFormat) = withDrive { token ->
+        if (viewModel.driveAccount.value == null && connectDrive(token) == null) return@withDrive
+        driveBusy = true
+        notify(res.getString(R.string.drive_uploading))
+        val result = runCatching {
+            val text = BackupCodec.encode(viewModel.exportBackup(), format, ZoneId.systemDefault())
+            GoogleDrive.upload(context, token, exportFileName(format), text, format)
+        }
+        driveBusy = false
+        result.fold(
+            { file ->
+                val link = file.link
+                val message = res.getString(R.string.drive_uploaded, file.name)
+                if (link == null) {
+                    notify(message)
+                } else {
+                    notify(message, res.getString(R.string.open)) {
+                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }
+                    }
+                }
+            },
+            { notify(res.getString(R.string.drive_upload_failed)) },
+        )
     }
 
     fun write(format: BackupFormat, uri: Uri?) {
@@ -297,6 +381,23 @@ fun SettingsScreen(
             SectionHeader(stringResource(R.string.data))
             SettingsCard {
                 SettingsRow(
+                    title = stringResource(R.string.google_drive),
+                    subtitle = driveAccount ?: stringResource(R.string.drive_not_connected),
+                ) {
+                    if (driveBusy) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else if (driveAccount == null) {
+                        TextButton(onClick = {
+                            withDrive { token ->
+                                connectDrive(token)?.let { notify(res.getString(R.string.drive_connected, it)) }
+                            }
+                        }) { Text(stringResource(R.string.connect)) }
+                    } else {
+                        TextButton(onClick = { disconnectDrive() }) { Text(stringResource(R.string.disconnect)) }
+                    }
+                }
+                RowDivider()
+                SettingsRow(
                     title = stringResource(R.string.export_data),
                     subtitle = stringResource(R.string.export_data_hint),
                     onClick = { exporting = true },
@@ -332,14 +433,19 @@ fun SettingsScreen(
         ExportSheet(
             walletCount = state.wallets.size,
             entryCount = state.wallets.sumOf { it.entryCount },
+            driveConnected = driveAccount != null,
             onDismiss = { exporting = false },
             onExport = { format ->
                 exporting = false
-                val name = "kashy-${LocalDate.now()}.${format.extension}"
+                val name = exportFileName(format)
                 when (format) {
                     BackupFormat.JSON -> jsonLauncher.launch(name)
                     BackupFormat.CSV -> csvLauncher.launch(name)
                 }
+            },
+            onUploadToDrive = { format ->
+                exporting = false
+                uploadToDrive(format)
             },
         )
     }
@@ -398,7 +504,14 @@ private fun RateDialog(pair: RatePair, onDismiss: () -> Unit, onSave: (BigDecima
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExportSheet(walletCount: Int, entryCount: Int, onDismiss: () -> Unit, onExport: (BackupFormat) -> Unit) {
+private fun ExportSheet(
+    walletCount: Int,
+    entryCount: Int,
+    driveConnected: Boolean,
+    onDismiss: () -> Unit,
+    onExport: (BackupFormat) -> Unit,
+    onUploadToDrive: (BackupFormat) -> Unit,
+) {
     var format by rememberSaveable { mutableStateOf(BackupFormat.JSON) }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -418,6 +531,15 @@ private fun ExportSheet(walletCount: Int, entryCount: Int, onDismiss: () -> Unit
             Button(onClick = { onExport(format) }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                 Text(stringResource(R.string.export))
             }
+            OutlinedButton(onClick = { onUploadToDrive(format) }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (driveConnected) R.string.upload_to_drive else R.string.connect_and_upload))
+            }
+            Text(
+                stringResource(if (format == BackupFormat.CSV) R.string.drive_sheet_hint else R.string.drive_file_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
         }
     }
 }
@@ -558,6 +680,8 @@ private fun Chevron() = Icon(
     contentDescription = null,
     tint = MaterialTheme.colorScheme.onSurfaceVariant,
 )
+
+private fun exportFileName(format: BackupFormat) = "kashy-${LocalDate.now()}.${format.extension}"
 
 private fun displayName(context: Context, uri: Uri): String =
     context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
