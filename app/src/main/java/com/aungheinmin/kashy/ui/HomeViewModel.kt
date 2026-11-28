@@ -200,6 +200,14 @@ class HomeViewModel(
         viewModelScope.launch { entryDao.upsert(entry) }
     }
 
+    fun deleteEntries(entries: List<Entry>) {
+        viewModelScope.launch { entryDao.deleteEntries(entries) }
+    }
+
+    fun restoreEntries(entries: List<Entry>) {
+        viewModelScope.launch { entryDao.upsertAll(entries) }
+    }
+
     companion object {
         val Factory = viewModelFactory {
             initializer {

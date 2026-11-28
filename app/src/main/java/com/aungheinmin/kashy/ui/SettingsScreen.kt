@@ -1,5 +1,6 @@
 package com.aungheinmin.kashy.ui
 
+import android.Manifest
 import android.app.Activity
 import android.text.InputType
 import android.content.Context
@@ -29,12 +30,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -76,6 +80,8 @@ import com.aungheinmin.kashy.data.BackupCodec
 import com.aungheinmin.kashy.data.BackupFormat
 import com.aungheinmin.kashy.data.Currency
 import com.aungheinmin.kashy.data.DigitGrouping
+import com.aungheinmin.kashy.data.EXPORT_FOLDER
+import com.aungheinmin.kashy.data.ExportFolder
 import com.aungheinmin.kashy.data.GoogleDrive
 import com.aungheinmin.kashy.data.KyatLabel
 import com.aungheinmin.kashy.data.ThemeMode
@@ -89,12 +95,14 @@ import java.math.BigDecimal
 
 private class PendingImport(val fileName: String, val backup: Backup, val format: BackupFormat)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: HomeViewModel,
     themeMode: ThemeMode,
     language: AppLanguage,
     style: AmountStyle,
+    onBack: () -> Unit,
     onOpenWallets: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -192,32 +200,34 @@ fun SettingsScreen(
         )
     }
 
-    fun write(format: BackupFormat, uri: Uri?) {
-        if (uri == null) return
+    fun exportToPhone(format: BackupFormat) {
         scope.launch {
             val result = runCatching {
                 val backup = viewModel.exportBackup()
                 val text = BackupCodec.encode(backup, format, ZoneId.systemDefault())
-                withContext(Dispatchers.IO) {
-                    context.contentResolver.openOutputStream(uri)!!.use { it.write(text.toByteArray()) }
-                }
+                withContext(Dispatchers.IO) { ExportFolder.save(context, exportFileName(format), format.mimeType, text) }
                 backup.entries.size
             }
             notify(
                 result.fold(
-                    { res.getQuantityString(R.plurals.exported_entries, it, it) },
+                    { res.getQuantityString(R.plurals.exported_entries, it, it) + " · " + ExportFolder.displayPath },
                     { res.getString(R.string.export_failed) },
                 )
             )
         }
     }
 
-    val jsonLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BackupFormat.JSON.mimeType)) {
-        write(BackupFormat.JSON, it)
+    var formatAwaitingPermission by remember { mutableStateOf<BackupFormat?>(null) }
+    val storagePermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        val format = formatAwaitingPermission
+        formatAwaitingPermission = null
+        when {
+            format == null -> Unit
+            granted -> exportToPhone(format)
+            else -> notify(res.getString(R.string.export_failed))
+        }
     }
-    val csvLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(BackupFormat.CSV.mimeType)) {
-        write(BackupFormat.CSV, it)
-    }
+
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         scope.launch {
@@ -232,18 +242,24 @@ fun SettingsScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = BOTTOM_BAR_SPACE)) }) { padding ->
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back)) }
+                },
+            )
+        },
+    ) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = padding.calculateBottomPadding() + BOTTOM_BAR_SPACE + 8.dp),
+                .padding(bottom = padding.calculateBottomPadding() + 24.dp),
         ) {
-            Text(
-                stringResource(R.string.settings),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.statusBarsPadding().padding(horizontal = 20.dp, vertical = 14.dp),
-            )
 
             SectionHeader(stringResource(R.string.appearance))
             SettingsCard {
@@ -437,10 +453,11 @@ fun SettingsScreen(
             onDismiss = { exporting = false },
             onExport = { format ->
                 exporting = false
-                val name = exportFileName(format)
-                when (format) {
-                    BackupFormat.JSON -> jsonLauncher.launch(name)
-                    BackupFormat.CSV -> csvLauncher.launch(name)
+                if (ExportFolder.needsPermission) {
+                    formatAwaitingPermission = format
+                    storagePermission.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                } else {
+                    exportToPhone(format)
                 }
             },
             onUploadToDrive = { format ->
@@ -529,13 +546,19 @@ private fun ExportSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Button(onClick = { onExport(format) }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                Text(stringResource(R.string.export))
+                Text(stringResource(R.string.save_to_phone))
             }
-            OutlinedButton(onClick = { onUploadToDrive(format) }, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                stringResource(R.string.phone_export_hint, ExportFolder.displayPath),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            OutlinedButton(onClick = { onUploadToDrive(format) }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
                 Text(stringResource(if (driveConnected) R.string.upload_to_drive else R.string.connect_and_upload))
             }
             Text(
-                stringResource(if (format == BackupFormat.CSV) R.string.drive_sheet_hint else R.string.drive_file_hint),
+                stringResource(if (format == BackupFormat.CSV) R.string.drive_sheet_hint else R.string.drive_file_hint, EXPORT_FOLDER),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.CenterHorizontally),

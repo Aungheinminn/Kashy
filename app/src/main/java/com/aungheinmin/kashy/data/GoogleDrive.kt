@@ -27,14 +27,13 @@ class DriveHttpException(val code: Int, body: String) : Exception("Drive returne
 class DriveFile(val name: String, val link: String?)
 
 /**
- * Uploads backups to a "Kashy" folder in the user's Drive. The drive.file scope only lets the app
+ * Uploads backups to the [EXPORT_FOLDER] folder in the user's Drive. The drive.file scope only lets the app
  * see files it created itself, so it never reads anything else in the user's Drive.
  */
 object GoogleDrive {
     private val SCOPE = Scope("https://www.googleapis.com/auth/drive.file")
     private const val API = "https://www.googleapis.com/drive/v3"
     private const val UPLOAD_API = "https://www.googleapis.com/upload/drive/v3"
-    private const val FOLDER_NAME = "Kashy"
     private const val FOLDER_MIME = "application/vnd.google-apps.folder"
     private const val SHEET_MIME = "application/vnd.google-apps.spreadsheet"
 
@@ -93,10 +92,10 @@ object GoogleDrive {
         }
 
     private fun folderId(token: String): String {
-        val query = URLEncoder.encode("name = '$FOLDER_NAME' and mimeType = '$FOLDER_MIME' and trashed = false", "UTF-8")
+        val query = URLEncoder.encode("name = '$EXPORT_FOLDER' and mimeType = '$FOLDER_MIME' and trashed = false", "UTF-8")
         val found = JSONObject(request("GET", "$API/files?q=$query&spaces=drive&fields=files(id)", token)).getJSONArray("files")
         if (found.length() > 0) return found.getJSONObject(0).getString("id")
-        val folder = JSONObject().put("name", FOLDER_NAME).put("mimeType", FOLDER_MIME)
+        val folder = JSONObject().put("name", EXPORT_FOLDER).put("mimeType", FOLDER_MIME)
         return JSONObject(request("POST", "$API/files?fields=id", token, "application/json; charset=UTF-8", folder.toString().toByteArray()))
             .getString("id")
     }
