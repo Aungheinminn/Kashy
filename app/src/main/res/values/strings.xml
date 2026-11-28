@@ -84,7 +84,6 @@ Tap + to record cash in or out.</string>
         <item quantity="one">%d entry</item>
         <item quantity="other">%d entries</item>
     </plurals>
-    <string name="home">Home</string>
     <string name="settings">Settings</string>
     <string name="appearance">Appearance</string>
     <string name="theme_system">System</string>
@@ -116,8 +115,8 @@ Tap + to record cash in or out.</string>
     <string name="drive_disconnected">Disconnected from Google Drive</string>
     <string name="upload_to_drive">Upload to Google Drive</string>
     <string name="connect_and_upload">Connect Google Drive and upload</string>
-    <string name="drive_file_hint">Goes to the Kashy folder in your Drive.</string>
-    <string name="drive_sheet_hint">Goes to the Kashy folder in your Drive as a Google Sheet.</string>
+    <string name="drive_file_hint">Goes to the %s folder in your Drive.</string>
+    <string name="drive_sheet_hint">Goes to the %s folder in your Drive as a Google Sheet.</string>
     <string name="drive_uploading">Uploading to Google Drive…</string>
     <string name="drive_uploaded">Saved %s to Google Drive</string>
     <string name="drive_upload_failed">Couldn\'t upload to Google Drive</string>
@@ -173,5 +172,17 @@ Tap + to record cash in or out.</string>
     <plurals name="not_included">
         <item quantity="one">%d not included</item>
         <item quantity="other">%d not included</item>
+    </plurals>
+    <string name="save_to_phone">Save to phone</string>
+    <string name="phone_export_hint">Saved in %s</string>
+    <string name="select_all">Select all</string>
+    <string name="clear_selection">Clear selection</string>
+    <plurals name="selected_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <plurals name="entries_deleted">
+        <item quantity="one">Deleted %d entry</item>
+        <item quantity="other">Deleted %d entries</item>
     </plurals>
 </resources>

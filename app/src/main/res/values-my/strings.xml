@@ -13,15 +13,15 @@
     <string name="whole_numbers_only">%1$s အတွက် ကိန်းပြည့်သာ ရိုက်ပါ</string>
     <string name="none">မရှိ</string>
     <string name="all">အားလုံး</string>
-    <string name="cash_in">ငွေဝင်</string>
-    <string name="cash_out">ငွေထွက်</string>
+    <string name="cash_in">ရငွေ</string>
+    <string name="cash_out">ပေးငွေ</string>
     <string name="undo">ပြန်ယူ</string>
     <string name="entry_added">စာရင်းထည့်ပြီးပါပြီ</string>
     <string name="entry_updated">စာရင်းပြင်ပြီးပါပြီ</string>
     <string name="entry_deleted">စာရင်းဖျက်ပြီးပါပြီ</string>
     <string name="empty_filtered">ဤစစ်ထုတ်မှုနှင့် ကိုက်ညီသော စာရင်းမရှိပါ။</string>
     <string name="empty_month">ဤလတွင် စာရင်းမရှိသေးပါ။
-ငွေဝင်ငွေထွက် မှတ်ရန် + ကိုနှိပ်ပါ။</string>
+ရငွေ ပေးငွေ မှတ်ရန် + ကိုနှိပ်ပါ။</string>
     <string name="wallet">ပိုက်ဆံအိတ်</string>
     <string name="switch_wallet">ပိုက်ဆံအိတ် ပြောင်းရန်</string>
     <string name="new_wallet">ပိုက်ဆံအိတ်အသစ်</string>
@@ -44,8 +44,8 @@
     <string name="remove_filter">စစ်ထုတ်မှု ဖယ်ရန်</string>
     <string name="no_category">အမျိုးအစားမရှိ</string>
     <string name="filter">စစ်ထုတ်ရန်</string>
-    <string name="cash_out_categories">ငွေထွက် အမျိုးအစားများ</string>
-    <string name="cash_in_categories">ငွေဝင် အမျိုးအစားများ</string>
+    <string name="cash_out_categories">ပေးငွေ အမျိုးအစားများ</string>
+    <string name="cash_in_categories">ရငွေ အမျိုးအစားများ</string>
     <string name="other">အခြား</string>
     <string name="clear_all">အားလုံးဖယ်မည်</string>
     <string name="show_results">ရလဒ်ပြမည်</string>
@@ -79,7 +79,6 @@
     <plurals name="entry_count">
         <item quantity="other">စာရင်း %d ခု</item>
     </plurals>
-    <string name="home">ပင်မ</string>
     <string name="settings">ဆက်တင်</string>
     <string name="appearance">အသွင်အပြင်</string>
     <string name="theme_system">ဖုန်းအတိုင်း</string>
@@ -111,8 +110,8 @@
     <string name="drive_disconnected">Google Drive နှင့် ချိတ်ဆက်မှု ဖြုတ်ပြီးပါပြီ</string>
     <string name="upload_to_drive">Google Drive သို့ တင်မည်</string>
     <string name="connect_and_upload">Google Drive ချိတ်ဆက်ပြီး တင်မည်</string>
-    <string name="drive_file_hint">သင့် Drive ရှိ Kashy ဖိုဒါထဲသို့ သိမ်းမည်။</string>
-    <string name="drive_sheet_hint">သင့် Drive ရှိ Kashy ဖိုဒါထဲသို့ Google Sheet အဖြစ် သိမ်းမည်။</string>
+    <string name="drive_file_hint">သင့် Drive ရှိ %s ဖိုဒါထဲသို့ သိမ်းမည်။</string>
+    <string name="drive_sheet_hint">သင့် Drive ရှိ %s ဖိုဒါထဲသို့ Google Sheet အဖြစ် သိမ်းမည်။</string>
     <string name="drive_uploading">Google Drive သို့ တင်နေသည်…</string>
     <string name="drive_uploaded">%s ကို Google Drive တွင် သိမ်းပြီးပါပြီ</string>
     <string name="drive_upload_failed">Google Drive သို့ တင်၍ မရပါ</string>
@@ -163,5 +162,15 @@
     </plurals>
     <plurals name="not_included">
         <item quantity="other">%d ခု မပါဝင်ပါ</item>
+    </plurals>
+    <string name="save_to_phone">ဖုန်းထဲ သိမ်းမည်</string>
+    <string name="phone_export_hint">%s တွင် သိမ်းမည်</string>
+    <string name="select_all">အားလုံး ရွေးမည်</string>
+    <string name="clear_selection">ရွေးထားမှု ဖျက်မည်</string>
+    <plurals name="selected_count">
+        <item quantity="other">%d ခု ရွေးထားသည်</item>
+    </plurals>
+    <plurals name="entries_deleted">
+        <item quantity="other">စာရင်း %d ခု ဖျက်ပြီးပါပြီ</item>
     </plurals>
 </resources>

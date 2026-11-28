@@ -79,7 +79,6 @@
     <plurals name="entry_count">
         <item quantity="other">%d件</item>
     </plurals>
-    <string name="home">ホーム</string>
     <string name="settings">設定</string>
     <string name="appearance">表示</string>
     <string name="theme_system">端末</string>
@@ -111,8 +110,8 @@
     <string name="drive_disconnected">Google ドライブとの接続を解除しました</string>
     <string name="upload_to_drive">Google ドライブにアップロード</string>
     <string name="connect_and_upload">Google ドライブに接続してアップロード</string>
-    <string name="drive_file_hint">ドライブの Kashy フォルダに保存されます。</string>
-    <string name="drive_sheet_hint">ドライブの Kashy フォルダに Google スプレッドシートとして保存されます。</string>
+    <string name="drive_file_hint">ドライブの %s フォルダに保存されます。</string>
+    <string name="drive_sheet_hint">ドライブの %s フォルダに Google スプレッドシートとして保存されます。</string>
     <string name="drive_uploading">Google ドライブにアップロード中…</string>
     <string name="drive_uploaded">%s を Google ドライブに保存しました</string>
     <string name="drive_upload_failed">Google ドライブにアップロードできませんでした</string>
@@ -163,5 +162,15 @@
     </plurals>
     <plurals name="not_included">
         <item quantity="other">%d 件は含まれていません</item>
+    </plurals>
+    <string name="save_to_phone">端末に保存</string>
+    <string name="phone_export_hint">%s に保存されます</string>
+    <string name="select_all">すべて選択</string>
+    <string name="clear_selection">選択を解除</string>
+    <plurals name="selected_count">
+        <item quantity="other">%d件選択中</item>
+    </plurals>
+    <plurals name="entries_deleted">
+        <item quantity="other">%d件を削除しました</item>
     </plurals>
 </resources>

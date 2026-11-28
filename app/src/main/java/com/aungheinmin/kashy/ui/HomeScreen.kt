@@ -6,7 +6,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,8 +36,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -52,14 +60,18 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -92,16 +104,19 @@ private sealed interface Overlay {
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    addingEntry: Boolean,
-    onAddingEntryChange: (Boolean) -> Unit,
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val rates by viewModel.rates.collectAsStateWithLifecycle()
     val totalCurrency by viewModel.totalCurrency.collectAsStateWithLifecycle()
     val res = LocalContext.current.resources
     var overlay by remember { mutableStateOf<Overlay?>(null) }
+    var addingEntry by rememberSaveable { mutableStateOf(false) }
+    var selectedIds by rememberSaveable { mutableStateOf(emptySet<Long>()) }
+    val selecting = selectedIds.isNotEmpty()
+    val haptics = LocalHapticFeedback.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     fun notify(message: String, undo: (() -> Unit)? = null) {
@@ -112,22 +127,59 @@ fun HomeScreen(
         }
     }
 
+    // Entries that leave the list (another month, wallet or filter) can't stay selected out of sight.
+    LaunchedEffect(state.entries) {
+        val visible = state.entries.mapTo(HashSet()) { it.id }
+        if (!visible.containsAll(selectedIds)) selectedIds = selectedIds intersect visible
+    }
+    BackHandler(enabled = selecting) { selectedIds = emptySet() }
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = BOTTOM_BAR_SPACE)) },
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
-            HomeTopBar(
-                state = state,
-                onSelectWallet = viewModel::selectWallet,
-                onOpenWallets = onOpenWallets,
-                onCreateWallet = onCreateWallet,
-            )
+            if (selecting) {
+                SelectionTopBar(
+                    count = selectedIds.size,
+                    allSelected = selectedIds.size == state.entries.size,
+                    onClose = { selectedIds = emptySet() },
+                    onSelectAll = {
+                        selectedIds = if (selectedIds.size == state.entries.size) emptySet() else state.entries.mapTo(HashSet()) { it.id }
+                    },
+                    onDelete = {
+                        val doomed = state.entries.filter { it.id in selectedIds }
+                        selectedIds = emptySet()
+                        viewModel.deleteEntries(doomed)
+                        notify(
+                            res.getQuantityString(R.plurals.entries_deleted, doomed.size, doomed.size),
+                            undo = { viewModel.restoreEntries(doomed) },
+                        )
+                    },
+                )
+            } else {
+                HomeTopBar(
+                    state = state,
+                    onSelectWallet = viewModel::selectWallet,
+                    onOpenWallets = onOpenWallets,
+                    onCreateWallet = onCreateWallet,
+                    onOpenSettings = onOpenSettings,
+                )
+            }
+        },
+        floatingActionButton = {
+            if (!selecting) {
+                FloatingActionButton(
+                    onClick = { addingEntry = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) { Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_entry)) }
+            }
         },
     ) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = padding.calculateTopPadding(),
-                bottom = padding.calculateBottomPadding() + BOTTOM_BAR_SPACE + 8.dp,
+                bottom = padding.calculateBottomPadding() + FAB_SPACE,
             ),
         ) {
             item {
@@ -190,7 +242,26 @@ fun HomeScreen(
             val zone = ZoneId.systemDefault()
             val groups = state.entries.groupBy { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() }
             items(groups.entries.toList(), key = { it.key.toEpochDay() }) { (day, entries) ->
-                DayGroup(day, entries, state.currency, onClick = { overlay = Overlay.EditEntry(it) })
+                DayGroup(
+                    day = day,
+                    entries = entries,
+                    currency = state.currency,
+                    selecting = selecting,
+                    selectedIds = selectedIds,
+                    onClick = { entry ->
+                        if (!selecting) {
+                            overlay = Overlay.EditEntry(entry)
+                        } else if (entry.id in selectedIds) {
+                            selectedIds = selectedIds - entry.id
+                        } else {
+                            selectedIds = selectedIds + entry.id
+                        }
+                    },
+                    onLongClick = { entry ->
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        selectedIds = selectedIds + entry.id
+                    },
+                )
             }
         }
     }
@@ -238,10 +309,10 @@ fun HomeScreen(
         EntrySheet(
             initial = null,
             currency = state.currency,
-            onDismiss = { onAddingEntryChange(false) },
+            onDismiss = { addingEntry = false },
             onSave = { type, amount, note, category, timestamp ->
                 viewModel.save(null, type, amount, note, category, timestamp)
-                onAddingEntryChange(false)
+                addingEntry = false
                 notify(res.getString(R.string.entry_added))
             },
             onDelete = null,
@@ -255,6 +326,7 @@ private fun HomeTopBar(
     onSelectWallet: (Long) -> Unit,
     onOpenWallets: () -> Unit,
     onCreateWallet: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     var walletMenu by remember { mutableStateOf(false) }
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -307,6 +379,40 @@ private fun HomeTopBar(
                         },
                     )
                 }
+            }
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.settings))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectionTopBar(count: Int, allSelected: Boolean, onClose: () -> Unit, onSelectAll: () -> Unit, onDelete: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.clear_selection)) }
+            Text(
+                pluralStringResource(R.plurals.selected_count, count, count),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f).padding(start = 4.dp),
+            )
+            IconButton(onClick = onSelectAll) {
+                Icon(
+                    Icons.Filled.SelectAll,
+                    contentDescription = stringResource(R.string.select_all),
+                    tint = if (allSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -461,7 +567,15 @@ private fun ActiveFilterChips(keys: Set<String>, onRemove: (String) -> Unit) {
 }
 
 @Composable
-private fun DayGroup(day: LocalDate, entries: List<Entry>, currency: Currency, onClick: (Entry) -> Unit) {
+private fun DayGroup(
+    day: LocalDate,
+    entries: List<Entry>,
+    currency: Currency,
+    selecting: Boolean,
+    selectedIds: Set<Long>,
+    onClick: (Entry) -> Unit,
+    onLongClick: (Entry) -> Unit,
+) {
     val cash = LocalCashColors.current
     val net = entries.sumOf { if (it.type == EntryType.IN) it.amount else -it.amount }
     Column(
@@ -488,13 +602,28 @@ private fun DayGroup(day: LocalDate, entries: List<Entry>, currency: Currency, o
         }
         entries.forEach { entry ->
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            EntryRow(entry, currency, onClick = { onClick(entry) })
+            EntryRow(
+                entry = entry,
+                currency = currency,
+                selecting = selecting,
+                selected = entry.id in selectedIds,
+                onClick = { onClick(entry) },
+                onLongClick = { onLongClick(entry) },
+            )
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
+private fun EntryRow(
+    entry: Entry,
+    currency: Currency,
+    selecting: Boolean,
+    selected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+) {
     val cash = LocalCashColors.current
     val category = Category.of(entry.category)
     val isIn = entry.type == EntryType.IN
@@ -503,9 +632,16 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
     val typeLabel = stringResource(if (isIn) R.string.cash_in else R.string.cash_out)
     val noCategory = stringResource(R.string.no_category)
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier
+            .fillMaxWidth()
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (selecting) {
+            Checkbox(checked = selected, onCheckedChange = null, modifier = Modifier.padding(end = 10.dp))
+        }
         EntryIcon(entry.type, category)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -530,6 +666,9 @@ private fun EntryRow(entry: Entry, currency: Currency, onClick: () -> Unit) {
         )
     }
 }
+
+/** Room under the list so the floating add button never covers the last entry. */
+private val FAB_SPACE = 88.dp
 
 private fun plusIfAny(amount: Long) = if (amount == 0L) "" else "+"
 

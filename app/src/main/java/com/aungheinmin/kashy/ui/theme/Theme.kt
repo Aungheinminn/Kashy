@@ -2,6 +2,7 @@ package com.aungheinmin.kashy.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -9,6 +10,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.TextUnit
 import com.aungheinmin.kashy.data.ThemeMode
 
 @Immutable
@@ -88,6 +92,34 @@ fun KashyTheme(
         ThemeMode.DARK -> true
     }
     CompositionLocalProvider(LocalCashColors provides if (dark) DarkCash else LightCash) {
-        MaterialTheme(colorScheme = if (dark) DarkScheme else LightScheme, content = content)
+        val burmese = LocalConfiguration.current.locales[0].language == "my"
+        MaterialTheme(
+            colorScheme = if (dark) DarkScheme else LightScheme,
+            typography = if (burmese) BurmeseTypography else Typography(),
+            content = content,
+        )
     }
+}
+
+private fun TextStyle.naturalLineHeight() = copy(lineHeight = TextUnit.Unspecified)
+
+/** Material's fixed line heights are sized for Latin text and cut off the stacked marks in Burmese words. */
+private val BurmeseTypography = Typography().run {
+    copy(
+        displayLarge = displayLarge.naturalLineHeight(),
+        displayMedium = displayMedium.naturalLineHeight(),
+        displaySmall = displaySmall.naturalLineHeight(),
+        headlineLarge = headlineLarge.naturalLineHeight(),
+        headlineMedium = headlineMedium.naturalLineHeight(),
+        headlineSmall = headlineSmall.naturalLineHeight(),
+        titleLarge = titleLarge.naturalLineHeight(),
+        titleMedium = titleMedium.naturalLineHeight(),
+        titleSmall = titleSmall.naturalLineHeight(),
+        bodyLarge = bodyLarge.naturalLineHeight(),
+        bodyMedium = bodyMedium.naturalLineHeight(),
+        bodySmall = bodySmall.naturalLineHeight(),
+        labelLarge = labelLarge.naturalLineHeight(),
+        labelMedium = labelMedium.naturalLineHeight(),
+        labelSmall = labelSmall.naturalLineHeight(),
+    )
 }
